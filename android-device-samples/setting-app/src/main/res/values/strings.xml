@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">RICOH Live Streaming Client Setting</string>
+    <string name="ssid">SSID</string>
+    <string name="security">Security</string>
+    <string name="room_id">Room ID</string>
+
+    <string-array name="wifi_security">
+        <item>None</item>
+        <item>WEP</item>
+        <item>WPA/WPA2 PSK</item>
+    </string-array>
+
+    <string name="password">Password</string>
+    <string name="wifi_show_password">Show password</string>
+    <string name="send_resolution">Send resolution</string>
+    <string name="send_4k">4K</string>
+    <string name="send_2k">2K</string>
+    <string name="bitrate">Bitrate(kbps)</string>
+    <string name="initial_audio_mute">Initial audio mute</string>
+
+    <string name="create">Create</string>
+</resources>

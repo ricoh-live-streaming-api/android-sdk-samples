@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">RICOH Live Streaming Client App</string>
+    <string name="setting_app_name">Setting RICOH Live Streaming Client App</string>
+    <string name="permission_error_message">Please grant all permissions.</string>
+    <string name="ok_button">OK</string>
+    <string name="error">Error</string>
+    <string name="information">Information</string>
+    <string name="setting_completed">The setting is completed.</string>
+    <string name="connecting">Connecting…</string>
+    <string name="disconnecting">Disconnecting…</string>
+    <string name="connect_error">Network error is occurred.</string>
+    <string name="app_setup_failed">Application setup failed.</string>
+    <string name="send_4k">4K</string>
+    <string name="send_2k">2K</string>
+</resources>

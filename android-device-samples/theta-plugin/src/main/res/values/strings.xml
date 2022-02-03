@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">RICOH Live Streaming Client THETA Sender</string>
+    <string name="guide_save">Some items have not been saved.</string>
+    <string name="save_config">Save</string>
+    <string name="room_id">RoomID</string>
+    <string name="log_level">LogLevel</string>
+    <string name="room_id_is_empty">Room ID is empty.</string>
+    <string name="room_id_has_been_changed">Room ID has been changed. Are you sure to continue without saving?</string>
+    <string name="room_type">RoomType</string>
+    <string name="sfu">SFU</string>
+    <string name="p2p">P2P</string>
+    <string name="p2p_turn">P2P+Turn</string>
+</resources>

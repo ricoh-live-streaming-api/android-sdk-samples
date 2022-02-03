@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:background="#bfffffff"
+        android:id="@+id/controls_layout"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:id="@+id/room_id_label"
+            android:layout_width="0dp"
+            android:layout_height="24dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="16dp"
+            android:text="@string/room_id"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <EditText
+            android:id="@+id/room_id_text"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_marginEnd="4dp"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:text="@string/e2e_test_room_sample"
+            app:layout_constraintStart_toEndOf="@id/room_id_label"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:ignore="LabelFor" />
+
+        <Spinner
+            android:id="@+id/audio_list_spinner"
+            android:layout_width="180dp"
+            android:layout_height="48dp"
+            android:spinnerMode="dropdown"
+            app:layout_constraintTop_toBottomOf="@id/room_id_label"
+            app:layout_constraintEnd_toStartOf="@id/camera_list_spinner"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <Spinner
+            android:id="@+id/camera_list_spinner"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:spinnerMode="dropdown"
+            app:layout_constraintHorizontal_weight="0.3"
+            app:layout_constraintEnd_toStartOf="@id/connect_button"
+            app:layout_constraintStart_toEndOf="@id/audio_list_spinner"
+            app:layout_constraintTop_toTopOf="@id/audio_list_spinner" />
+
+        <Button
+            android:id="@+id/connect_button"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:layout_marginEnd="8dp"
+            android:text="@string/connect"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toEndOf="@id/camera_list_spinner"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/audio_list_spinner" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

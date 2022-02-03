@@ -1,0 +1,27 @@
+<resources>
+    <string name="app_name">sample</string>
+    <string name="connect">CONNECT</string>
+    <string name="disconnect">DISCONNECT</string>
+    <string name="connecting">Connecting…</string>
+    <string name="disconnecting">Disconnecting…</string>
+    <string name="video_receive">Video Receive</string>
+    <string name="mute_type">MuteType</string>
+    <string name="soft_mute">softmute</string>
+    <string name="hard_mute">hardmute</string>
+    <string name="audio">Audio</string>
+    <string name="video">Video</string>
+    <string name="mute">mute</string>
+    <string name="unmute">unmute</string>
+    <string name="update_meta">Update</string>
+    <string name="first_inbound_video_play">First Inbound Video Play</string>
+    <string name="room_id">Room ID:</string>
+    <string name="e2e_test_room_sample">e2e-test-room-sample</string>
+    <string name="default_connection_meta">{\"conn_meta_key\": \"conn_meta_value\"}</string>
+    <string name="default_audio_meta">{\"audio_meta_key\": \"audio_meta_value\"}</string>
+    <string name="default_video_meta">{\"video_meta_key\": \"video_meta_value\"}</string>
+    <string name="update_connection_metadata">Update Connection Metadata:</string>
+    <string name="update_audio_track_metadata">Update Audio Track Metadata:</string>
+    <string name="update_video_track_metadata">Update Video Track Metadata:</string>
+    <string name="update_audio_track_mute">Update Audio Track Mute:</string>
+    <string name="update_video_track_mute">Update Video Track Mute:</string>
+</resources>
