@@ -10,4 +10,18 @@
     <string name="sfu">SFU</string>
     <string name="p2p">P2P</string>
     <string name="p2p_turn">P2P+Turn</string>
+    <string name="live_streaming_state_label">LiveStreamingState</string>
+    <string name="resolution_label">Resolution</string>
+    <string name="current_resolution">%1$dx%2$d@%3$dfps</string>
+    <string name="bitrate_label">Bitrate</string>
+    <string name="current_bitrate">%1$dMbps</string>
+    <string name="change">Change</string>
+    <string name="auto">Auto</string>
+    <string name="audio">Audio</string>
+    <string name="unmute">unmute</string>
+    <string name="mute">mute</string>
+    <string name="display_off">Display off</string>
+    <string name="zenith_correction">Zenith correction</string>
+    <string name="off">Off</string>
+    <string name="on">On</string>
 </resources>

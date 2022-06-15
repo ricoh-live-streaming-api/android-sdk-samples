@@ -5,7 +5,9 @@
 package com.ricoh.livestreaming.theta
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -18,6 +20,8 @@ import com.ricoh.livestreaming.theta.databinding.ActivityMainBinding
 import com.ricoh.livestreaming.theta.webapi.ThetaWebApiClient
 import com.ricoh.livestreaming.webrtc.CodecUtils
 import com.ricoh.livestreaming.webrtc.ThetaCameraCapturer
+import com.ricoh.livestreaming.webrtc.ThetaVideoCapturer
+import com.ricoh.livestreaming.webrtc.ThetaXCameraCapturer
 import com.theta360.pluginlibrary.activity.PluginActivity
 import com.theta360.pluginlibrary.callback.KeyCallback
 import com.theta360.pluginlibrary.receiver.KeyReceiver
@@ -43,11 +47,10 @@ class MainActivity : PluginActivity() {
                 // 15Mbpsを利用するためには、connect optionsのmaxBitrateKbpsも15Mbpsに設定する必要があります
                 // またRoom帯域の予約値もそれにあわせて変更が必要になります
                 // 詳細は https://api.livestreaming.ricoh/document/%e6%83%b3%e5%ae%9a%e5%88%a9%e7%94%a8%e3%82%b7%e3%83%bc%e3%83%b3%e5%88%a5%e6%96%99%e9%87%91/ を参照ください
-//                15_000_000, // 15Mbps
-                10_000_000, // 10Mbps
-                5_000_000,  // 5Mbps
-                1_000_000,  // 1Mbps
-                0           // Auto
+                // 15_000, // 15Mbps
+                10_000, // 10Mbps
+                5_000,  // 5Mbps
+                1_000,  // 1Mbps
         ))
 
         private val CAPTURE_FORMATS = IteratorUtils.loopingIterator(listOf(
@@ -62,7 +65,7 @@ class MainActivity : PluginActivity() {
 
     private val executor = Executors.newSingleThreadExecutor()
 
-    private var capturer: ThetaCameraCapturer? = null
+    private var capturer: ThetaVideoCapturer? = null
 
     private var mEgl: EglBase? = null
 
@@ -77,6 +80,14 @@ class MainActivity : PluginActivity() {
     private var audioMute = MuteType.HARD_MUTE
 
     private var lsTracks = arrayListOf<LSTrack>()
+
+    private var isCameraKeyLongPressed = false
+
+    private var savedAudioMode = AudioManager.MODE_NORMAL
+    private var savedIsSpeakerPhoneOn = false
+    private var savedStreamVolume = 0
+    private var isDisplayOff = false
+    private var prevDisplayBrightness = 0
 
     /** View Binding */
     private lateinit var mActivityMainBinding: ActivityMainBinding
@@ -99,7 +110,33 @@ class MainActivity : PluginActivity() {
         ))
 
         CAPTURE_FORMATS.reset()
-        capturer = ThetaCameraCapturer(CAPTURE_FORMATS.next(), applicationContext)
+        val captureFormat = CAPTURE_FORMATS.next()
+        capturer = if (("RICOH THETA V" == Build.MODEL) || ("RICOH THETA Z1" == Build.MODEL)) {
+            ThetaCameraCapturer(captureFormat, applicationContext)
+        } else {
+            ThetaXCameraCapturer(captureFormat, applicationContext)
+        }
+        setResolutionToTextView(captureFormat)
+        mActivityMainBinding.resolutionChangeButton.setOnClickListener {
+            if (mClient?.state == Client.State.OPEN) {
+                updateCaptureFormat(CAPTURE_FORMATS.next())
+            }
+        }
+
+        BITRATES.reset()
+        // 初期状態での最大bitrate表示
+        setBitrateToTextView(BuildConfig.VIDEO_BITRATE)
+
+        // Bitrate setting button
+        mActivityMainBinding.bitrateChangeButton.setOnClickListener {
+            if (mClient?.state == Client.State.OPEN) {
+                val bitrateKbps = BITRATES.next()
+                mClient?.changeVideoSendBitrate(bitrateKbps)
+                LOGGER.debug("Target bitrate set to {}kbps", bitrateKbps)
+                notificationAudioSelf()
+                setBitrateToTextView(bitrateKbps)
+            }
+        }
 
         // Load configurations.
         Config.load(this.applicationContext)
@@ -139,6 +176,63 @@ class MainActivity : PluginActivity() {
         // Mute Type
         val confAudioMute = BuildConfig.INITIAL_AUDIO_MUTE
         audioMute = if (confAudioMute == "unmute" || confAudioMute == "null") MuteType.UNMUTE else MuteType.HARD_MUTE
+        mActivityMainBinding.audioMuteRadio.check(
+            if (audioMute == MuteType.UNMUTE) {
+                R.id.audio_unmute
+            } else {
+                R.id.audio_mute
+            }
+        )
+        mActivityMainBinding.audioMuteRadio.setOnCheckedChangeListener { _, checkedId ->
+            val muteType = if (checkedId == R.id.audio_unmute) {
+                MuteType.UNMUTE
+            } else {
+                MuteType.HARD_MUTE
+            }
+            if (audioMute != muteType) {
+                changeAudioMute(muteType)
+            }
+        }
+
+        // Display off button
+        if ("RICOH THETA X" == Build.MODEL) {
+            mActivityMainBinding.displayOffButton.setOnClickListener {
+                prevDisplayBrightness = getDisplayBrightness()
+                setDisplayBrightness(0)
+                isDisplayOff = true
+            }
+        } else {
+            mActivityMainBinding.displayOffButton.visibility = View.GONE
+        }
+        mActivityMainBinding.displayOffButton.isEnabled = false
+
+        // Zenith correction
+        if ("RICOH THETA X" == Build.MODEL) {
+            mActivityMainBinding.zenithCorrectionRadio.setOnCheckedChangeListener { _, checkedId ->
+                val c = capturer
+                if (c is ThetaXCameraCapturer) {
+                    c.setZenithCorrection(checkedId == R.id.zenith_correction_on)
+                }
+            }
+        } else {
+            mActivityMainBinding.zenithCorrectionLayout.visibility = View.GONE
+        }
+    }
+
+    private fun setDisplayBrightness(brightness: Int) {
+        val c = capturer
+        if (c is ThetaXCameraCapturer) {
+            c.lcdBrightness = brightness
+        }
+    }
+
+    private fun getDisplayBrightness(): Int {
+        val c = capturer
+        return if (c is ThetaXCameraCapturer) {
+            return c.lcdBrightness
+        } else {
+            0
+        }
     }
 
     private fun updateText(text: String) {
@@ -160,8 +254,10 @@ class MainActivity : PluginActivity() {
             audioMute = muteType
             if (audioMute == MuteType.HARD_MUTE) {
                 updateText("audio: mute")
+                mActivityMainBinding.audioMuteRadio.check(R.id.audio_mute)
             } else {
                 updateText("audio: unmute")
+                mActivityMainBinding.audioMuteRadio.check(R.id.audio_unmute)
             }
             LOGGER.debug("audio mute change to {}", muteType)
         } catch (e: SDKError) {
@@ -171,6 +267,22 @@ class MainActivity : PluginActivity() {
 
     override fun onResume() {
         super.onResume()
+
+        if ("RICOH THETA X" == Build.MODEL) {
+            val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+            savedAudioMode = audioManager.mode
+            savedIsSpeakerPhoneOn = audioManager.isSpeakerphoneOn
+            savedStreamVolume = audioManager.getStreamVolume(AudioManager.STREAM_VOICE_CALL)
+
+            audioManager.mode = AudioManager.MODE_IN_CALL
+            audioManager.setStreamVolume(
+                    AudioManager.STREAM_VOICE_CALL,
+                    audioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL),
+                    AudioManager.FX_KEY_CLICK
+            )
+            audioManager.isSpeakerphoneOn = true
+        }
 
         notificationLedHide(LedTarget.LED4)
         notificationLedHide(LedTarget.LED5)
@@ -182,16 +294,16 @@ class MainActivity : PluginActivity() {
                         !keyEvent.isLongPress &&
                         mClient?.state == Client.State.OPEN) {
                     try {
-                        LOGGER.info("update capture format.")
-                        capturer?.updateCaptureFormat(CAPTURE_FORMATS.next())
-                        notificationAudioSelf()
+                        updateCaptureFormat(CAPTURE_FORMATS.next())
                     } catch (e: Exception) {
                         LOGGER.error("Failed to updateCaptureFormat.", e)
                     }
-                } else if (keyCode == KeyReceiver.KEYCODE_WLAN_ON_OFF) {
-                    val bitrate = BITRATES.next()
-                    mThetaVideoEncoderFactory!!.setTargetBitrate(bitrate)
-                    LOGGER.debug("Target bitrate set to {}", bitrate)
+                } else if (keyCode == KeyReceiver.KEYCODE_WLAN_ON_OFF &&
+                        mClient?.state == Client.State.OPEN) {
+                    val bitrateKbps = BITRATES.next()
+                    mClient?.changeVideoSendBitrate(bitrateKbps)
+                    LOGGER.debug("Target bitrate set to {}kbps", bitrateKbps)
+                    setBitrateToTextView(bitrateKbps)
                     notificationAudioSelf()
                 } else if (keyCode == KeyReceiver.KEYCODE_FUNCTION) {
                     // toggle mute
@@ -201,19 +313,28 @@ class MainActivity : PluginActivity() {
             }
 
             override fun onKeyUp(keyCode: Int, keyEvent: KeyEvent) {
-                if (keyCode == KeyReceiver.KEYCODE_CAMERA &&
-                        !keyEvent.isCanceled &&
-                        mClient?.state == Client.State.OPEN) {
-                    try {
-                        LOGGER.info("try to take a picture.")
-                        capturer?.takePicture { data ->
-                            notificationAudioShutter()
-                            val path = createFilePath() + ".jpg"
-                            LOGGER.info("Save Still Image to {}", path)
-                            File(path).writeBytes(data)
+                if (isDisplayOff) {
+                    isDisplayOff = false
+                    setDisplayBrightness(prevDisplayBrightness)
+                } else if (keyCode == KeyReceiver.KEYCODE_CAMERA) {
+                    val isCanceled = if (("RICOH THETA V" == Build.MODEL) || ("RICOH THETA Z1" == Build.MODEL)) {
+                        keyEvent.isCanceled
+                    } else {
+                        isCameraKeyLongPressed
+                    }
+                    isCameraKeyLongPressed = false
+                    if (!isCanceled && mClient?.state == Client.State.OPEN) {
+                        try {
+                            LOGGER.info("try to take a picture.")
+                            capturer?.takePicture { data ->
+                                notificationAudioShutter()
+                                val path = createFilePath() + ".jpg"
+                                LOGGER.info("Save Still Image to {}", path)
+                                File(path).writeBytes(data)
+                            }
+                        } catch (e: IllegalStateException) {
+                            LOGGER.error("Failed to takePicture.", e)
                         }
-                    } catch (e: IllegalStateException) {
-                        LOGGER.error("Failed to takePicture.", e)
                     }
                 }
             }
@@ -221,6 +342,7 @@ class MainActivity : PluginActivity() {
             @SuppressLint("SimpleDateFormat")
             override fun onKeyLongPress(keyCode: Int, keyEvent: KeyEvent) {
                 if (keyCode == KeyReceiver.KEYCODE_CAMERA) {
+                    isCameraKeyLongPressed = true
                     if (mClient == null) {
                         executor.submit {
                             LOGGER.info("Try to connect. RoomType={}", Config.getRoomType())
@@ -300,6 +422,23 @@ class MainActivity : PluginActivity() {
         executor.submit {
             mClient?.disconnect()
         }.get()
+
+        if ("RICOH THETA X" == Build.MODEL) {
+            val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+
+            audioManager.mode = savedAudioMode
+            audioManager.isSpeakerphoneOn = savedIsSpeakerPhoneOn
+            audioManager.setStreamVolume(
+                    AudioManager.STREAM_VOICE_CALL,
+                    savedStreamVolume,
+                    AudioManager.FX_KEY_CLICK
+            )
+            audioManager.isSpeakerphoneOn = true
+            if (isDisplayOff) {
+                setDisplayBrightness(prevDisplayBrightness)
+                isDisplayOff = false
+            }
+        }
     }
 
     override fun onDestroy() {
@@ -315,6 +454,10 @@ class MainActivity : PluginActivity() {
             notificationCameraClose()
             notificationLedBlink(LedTarget.LED6, LedColor.BLUE, 250)
             notificationAudioMovStart()
+
+            runOnUiThread {
+                mActivityMainBinding.liveStreamingStateText.text = mClient?.state.toString()
+            }
         }
 
         override fun onOpen() {
@@ -340,18 +483,38 @@ class MainActivity : PluginActivity() {
 
             notificationLedShow(LedTarget.LED6)
             notificationAudioOpen()
+            runOnUiThread {
+                mActivityMainBinding.liveStreamingStateText.text = mClient?.state.toString()
+                mActivityMainBinding.resolutionChangeButton.isEnabled = true
+                mActivityMainBinding.bitrateChangeButton.isEnabled = true
+                mActivityMainBinding.audioMute.isEnabled = true
+                mActivityMainBinding.audioUnmute.isEnabled = true
+                mActivityMainBinding.displayOffButton.isEnabled = true
+            }
         }
 
         override fun onClosing() {
             LOGGER.debug("Client#onClosing")
             notificationLedBlink(LedTarget.LED6, LedColor.BLUE, 250)
             notificationAudioClose()
+            runOnUiThread {
+                mActivityMainBinding.liveStreamingStateText.text = mClient?.state.toString()
+                mActivityMainBinding.resolutionChangeButton.isEnabled = false
+                mActivityMainBinding.bitrateChangeButton.isEnabled = false
+                mActivityMainBinding.audioMute.isEnabled = false
+                mActivityMainBinding.audioUnmute.isEnabled = false
+                mActivityMainBinding.displayOffButton.isEnabled = false
+            }
         }
 
         override fun onClosed() {
             LOGGER.debug("Client#onClosed")
             mStatsTimer?.cancel()
             mStatsTimer = null
+
+            runOnUiThread {
+                mActivityMainBinding.liveStreamingStateText.text = mClient?.state.toString()
+            }
 
             synchronized(LOCK) {
                 mRtcStatsLogger?.close()
@@ -445,5 +608,30 @@ class MainActivity : PluginActivity() {
 
     private fun disableBFormat() {
         getSystemService(AudioManager::class.java)!!.setParameters("RicUseBFormat=false")
+    }
+
+    private fun updateCaptureFormat(format: CaptureFormat) {
+        try {
+            LOGGER.info("update capture format.")
+            capturer?.updateCaptureFormat(format)
+            setResolutionToTextView(format)
+            notificationAudioSelf()
+        } catch (e: Exception) {
+            LOGGER.error("Failed to updateCaptureFormat.", e)
+        }
+    }
+
+    private fun setResolutionToTextView(format: CaptureFormat) {
+        mActivityMainBinding.currentResolutionText.text = getString(
+                R.string.current_resolution,
+                format.shootingMode.width,
+                format.shootingMode.height,
+                format.fps)
+    }
+
+    private fun setBitrateToTextView(bitrateKbps: Int) {
+        mActivityMainBinding.currentBitrateText.text = getString(
+                R.string.current_bitrate,
+                bitrateKbps / 1_000)
     }
 }

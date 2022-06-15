@@ -69,7 +69,7 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.0.4")
     implementation("org.slf4j:slf4j-api:1.7.30")
     implementation("com.github.tony19:logback-android:1.3.0-3")
-    implementation("com.theta360:pluginlibrary:2.1.0")
+    implementation("com.theta360:pluginlibrary:3.0.0")
     implementation("org.apache.commons:commons-collections4:4.4")
     implementation("com.squareup.okhttp3:okhttp:4.8.1")
     implementation("com.google.code.gson:gson:2.8.6")
