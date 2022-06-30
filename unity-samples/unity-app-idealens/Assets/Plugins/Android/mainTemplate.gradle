@@ -13,6 +13,7 @@ buildscript {
 
 allprojects {
     repositories {
+        maven { url = uri("https://github.com/ricohapi/theta-plugin-library/raw/master/repository") }
         google()
         jcenter()
         flatDir {
@@ -29,6 +30,7 @@ dependencies {
     implementation 'com.github.tony19:logback-android:1.3.0-3'
     implementation 'com.squareup.okhttp3:okhttp:3.11.0'
     implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.theta360:pluginlibrary:3.0.0'
     api 'io.jsonwebtoken:jjwt-api:0.11.2'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.2'
     runtimeOnly('io.jsonwebtoken:jjwt-orgjson:0.11.2') {

@@ -1,6 +1,6 @@
-# RICOH Live Streaming Client SDK for Android
+# RICOH Live Streaming API の Unity Android 向けサンプル
 
-株式会社リコーが提供するRICOH Live Streaming Serviceを利用するためのRICOH Live Streaming Client SDK for Android、及び、 Oculus Quest / IDEALENS K4向けのサンプルプロジェクトです。
+株式会社リコーが提供するRICOH Live Streaming Serviceを利用するためのRICOH Live Streaming Client SDK for Android、及び、 Meta Quest / IDEALENS K4向けのサンプルプロジェクトです。
 
 RICOH Live Streaming Serviceは、映像/音声などのメディアデータやテキストデータなどを
 複数の拠点間で双方向かつリアルタイムにやりとりできるプラットフォームです。
@@ -9,7 +9,8 @@ RICOH Live Streaming Serviceは、映像/音声などのメディアデータや
 詳細は下記Webサイトをご確認ください。
 
 * サービスサイト: https://livestreaming.ricoh/
-  * ソフトウェア開発者向けサイト: https://api.livestreaming.ricoh/
+* ソフトウェア開発者向けサイト: https://api.livestreaming.ricoh/
+* アカウント登録: https://livestreaming.ricoh/user_register.html
 * ソフトウェア使用許諾契約書 : [Software License Agreement](SoftwareLicenseAgreement.txt)
 
 * NOTICE: This package includes SDK and sample application(s) for "RICOH Live Streaming Service".
@@ -19,5 +20,5 @@ At this moment, we provide API license agreement / software license agreement on
 ## プロジェクト構成
 
 * [unity-app](unity-app) Android Unity 基本サンプル
-* [unity-app-oculus](unity-app-oculus) OculusQuest向けサンプル
+* [unity-app-oculus](unity-app-oculus) Meta Quest向けサンプル
 * [unity-app-idealens](unity-app-idealens) IDEALENS K4向けサンプル

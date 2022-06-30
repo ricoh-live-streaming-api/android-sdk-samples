@@ -51,6 +51,8 @@ abstract class BaseActivity : AppCompatActivity() {
     var mVideoCapturer: Camera2VideoCapturer? = null
     var mViewLayoutManager: ViewLayoutManager? = null
 
+    val mConnectOption: ConnectOption = ConnectOption()
+
     override fun onResume() {
         super.onResume()
 
@@ -99,7 +101,7 @@ abstract class BaseActivity : AppCompatActivity() {
             /** Client インスタンスを生成して connect / disconnect します */
             if (mClient == null) {
                 createClient(ClientListener())
-                connect()
+                connect(mConnectOption)
             } else {
                 disconnect()
             }
@@ -151,7 +153,7 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     /** connect API を用いてサーバーに接続します */
-    private fun connect() = executor.safeSubmit {
+    private fun connect(connectOption: ConnectOption) = executor.safeSubmit {
         LOGGER.info("Try to connect. RoomType={}", Config.roomType.value.typeStr)
 
         val roomSpec = RoomSpec(Config.roomType.value)
@@ -182,7 +184,7 @@ abstract class BaseActivity : AppCompatActivity() {
                         SendingVideoOption.Builder()
                                 .videoCodecType(SendingVideoOption.VideoCodecType.VP8)
                                 .sendingPriority(SendingVideoOption.SendingPriority.HIGH)
-                                .maxBitrateKbps(Config.videoBitrate)
+                                .maxBitrateKbps(connectOption.maxBitrateKbps ?: Config.videoBitrate)
                                 .build()))
                 .iceTransportPolicy(Config.iceTransportPolicy)
                 .build()

@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v1.5.0
+* Client SDKを1.7.0 にアップデート
+* Meta Quest向けサンプルのUnityバージョンを2021.3.5f1にアップデート
+* Meta Quest向けサンプルのOculusIntegrationSDKを41.0にアップデート
+
 ## v1.4.0
 * Client SDKを1.5.0 にアップデート
   * UnityのライフサイクルのStart()でUnityPlugin#setUnityContext()を呼び出していたのをGL.IssuePluginEvent()の呼び出しに変更

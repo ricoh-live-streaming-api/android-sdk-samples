@@ -21,7 +21,7 @@ android {
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        val props = Properties().apply { load(file("credentials.properties").inputStream()) }
+        val props = Properties().apply { load(file("local.properties").inputStream()) }
 
         buildConfigField("String", "CLIENT_ID", "\"" + props["client_id"] + "\"")
         buildConfigField("String", "CLIENT_SECRET", "\"" + props["client_secret"] + "\"")

@@ -1,50 +1,53 @@
-# RICOH Live Streaming Client for Oculus Quest
+# RICOH Live Streaming Client for Meta Quest
 
-Oculus Quest上でWebRTCを使用して映像・音声をライブストリーミング受信するアプリ
+Meta Quest上でWebRTCを使用して映像・音声をライブストリーミング受信するアプリ
 
 ## 動かし方
 
 1. Unity HubでUnityAppForOculusをリストに追加し起動する
-2. OculusIntegrationを https://developer.oculus.com/downloads/package/unity-integration-archive/20.1/ から20.1を選択し、任意の場所にダウンロードする
-3. Unity上で `Assets > Import Package > Custom Package` から、ダウンロードした `OculusIntegration_20.1.unitypackage` を選択する
-4. `Import Unity Package` ダイアログが表示されたらImportボタンを選択する
+2. `Enter Safe Mode?` ダイアログが表示されたらIgnoreボタンを選択する
+
+<img src="../images/EnterSafeMode.png" width=300px>
+
+3. OculusIntegrationを https://developer.oculus.com/downloads/package/unity-integration/ から41.0を選択し、任意の場所にダウンロードする
+4. Unity上で `Assets > Import Package > Custom Package` から、ダウンロードした `OculusIntegration_v41.0.unitypackage` を選択する
+5. `Import Unity Package` ダイアログが表示されたらImportボタンを選択する
 
 <img src="../images/OculusIntegration.png" width=300px>
 
-5. `File > Build Settings` を選択し、PlatformをAndroidに変更する
-6. Projectの `Assets > Senes` でSceneをダブルクリックする
-7. Client ID, Secret, Room ID を取得する
-8. [設定ファイル](#設定ファイル)を作成する。
-9. `Update Oclus Utilities Plugin` ダイアログが表示されたらYESを選択する
+6. `File > Build Settings` を選択し、PlatformをAndroidに変更する
+7. Projectの `Assets > Senes` でSceneをダブルクリックする
+8. Client ID, Secret, Room ID を取得する
+9. [設定ファイル](#設定ファイル)を作成する。
+10. `Update Oclus Utilities Plugin` ダイアログが表示されたらYESを選択する
 
 <img src="../images/UpdateOculusUtilitiesPlugin.png" width=300px>
 
-10. `Restart Unity` ダイアログが表示されたらRestartを選択する
+11. `OpenXR Backend`ダイアログが表示されたらUse OpenXRを選択する
 
-<img src="../images/RestartUnity.png" width=300px>
-
-11. `Update Spatializer Plugins` ダイアログが表示されたらUpgradeを選択する
-
-<img src="../images/UpdateSpatializerPlugin.png" width=300px>
+<img src="../images/OpenXRBackend.png" width=300px>
 
 12. `Restart Unity` ダイアログが表示されたらRestartを選択する
 
 <img src="../images/RestartUnity.png" width=300px>
 
-13. Hierarchyの Scene > Scriptsを選択し、InspectorからUIHelpersをダブルクリックする
+13. `Update Spatializer Plugins` ダイアログが表示されたらUpgradeを選択する
 
-<img src="../images/UIHelper.png" width=600px>
+<img src="../images/UpdateSpatializerPlugin.png" width=300px>
 
-14. Hierarchyの UIHelpers > EventSystemを選択し、`InspectorのJoy Pad Click Button` を `One` と `Secondary Index Triger` を選択状態に、`Gaze Click Key`を `None` に変更する
+14. `Restart Unity` ダイアログが表示されたらRestartを選択する
 
-<img src="../images/EventSystem.png" width=600px>
+<img src="../images/RestartUnity2.png" width=300px>
 
 15. PlayerSettingsの `Multithreaded Rendering` をONにする
 
 <img src="../images/PlayerSettings.png" width=600px>
 
+16. PlayerSettingsの `XR Plug-in Management > Oculus` の `Stereo Rendering Mode` を Multi Passにする
 
-16. `File > Build And Run` を選択し、端末にアプリをインストールする
+<img src="../images/OculusMultiPass.png" width=600px>
+
+17. `File > Build And Run` を選択し、端末にアプリをインストールする
 
 ### 設定ファイル
 
@@ -94,5 +97,8 @@ libwebrtc の実装に依存するため、記載されているすべての情�
 $ adb pull /storage/emulated/0/Android/data/com.ricoh.livestreaming.oculus/files/logs
 ```
 
+### 動作確認済みUnityバージョン
+* 2021.3.5f1
+
 ### 動作確認済みOculusIntegrationSDKバージョン
-- 20.1
+* 41.0

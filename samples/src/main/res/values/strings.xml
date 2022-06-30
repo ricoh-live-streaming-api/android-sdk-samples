@@ -14,6 +14,8 @@
     <string name="unmute">unmute</string>
     <string name="update_meta">Update</string>
     <string name="first_inbound_video_play">First Inbound Video Play</string>
+    <string name="bitrate_label">Bitrate</string>
+    <string name="bitrate_unit">kbps</string>
     <string name="room_id">Room ID:</string>
     <string name="e2e_test_room_sample">e2e-test-room-sample</string>
     <string name="default_connection_meta">{\"conn_meta_key\": \"conn_meta_value\"}</string>
