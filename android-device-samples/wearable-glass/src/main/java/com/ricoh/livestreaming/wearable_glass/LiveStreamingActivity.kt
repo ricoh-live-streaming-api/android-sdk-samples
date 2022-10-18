@@ -297,7 +297,7 @@ class LiveStreamingActivity : AppCompatActivity() {
 
     inner class ClientListener : Client.Listener {
 
-        override fun onConnecting() {
+        override fun onConnecting(event: LSConnectingEvent) {
             LOGGER.debug("Client#onConnecting")
 
             runOnUiThread {
@@ -306,7 +306,7 @@ class LiveStreamingActivity : AppCompatActivity() {
             }
         }
 
-        override fun onOpen() {
+        override fun onOpen(event: LSOpenEvent) {
             LOGGER.debug("Client#onOpen")
 
             // == For WebRTC Internal Tracing Capture.
@@ -342,7 +342,7 @@ class LiveStreamingActivity : AppCompatActivity() {
             }
         }
 
-        override fun onClosing() {
+        override fun onClosing(event: LSClosingEvent) {
             LOGGER.debug("Client#onClosing")
 
             runOnUiThread {
@@ -351,7 +351,7 @@ class LiveStreamingActivity : AppCompatActivity() {
             }
         }
 
-        override fun onClosed() {
+        override fun onClosed(event: LSClosedEvent) {
             LOGGER.debug("Client#onClosed")
 
             // == For WebRTC Internal Tracing
@@ -375,71 +375,71 @@ class LiveStreamingActivity : AppCompatActivity() {
             finish()
         }
 
-        override fun onAddLocalTrack(track: MediaStreamTrack, stream: MediaStream) {
-            LOGGER.debug("Client#onAddLocalTrack({})", track.id())
+        override fun onAddLocalTrack(event: LSAddLocalTrackEvent) {
+            LOGGER.debug("Client#onAddLocalTrack({})", event.mediaStreamTrack.id())
 
-            if (track is VideoTrack) {
-                mVideoRenderManager!!.addLocalTrack(track)
+            if (event.mediaStreamTrack is VideoTrack) {
+                mVideoRenderManager!!.addLocalTrack(event.mediaStreamTrack as VideoTrack)
             }
         }
 
-        override fun onAddRemoteConnection(connectionId: String, metadata: Map<String, Any>) {
-            LOGGER.debug("Client#onAddRemoteConnection(connectionId = ${connectionId})")
+        override fun onAddRemoteConnection(event: LSAddRemoteConnectionEvent) {
+            LOGGER.debug("Client#onAddRemoteConnection(connectionId = ${event.connectionId})")
 
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
         }
 
-        override fun onRemoveRemoteConnection(connectionId: String, metadata: Map<String, Any>, mediaStreamTracks: List<MediaStreamTrack>) {
-            LOGGER.debug("Client#onRemoveRemoteConnection(connectionId = ${connectionId})")
+        override fun onRemoveRemoteConnection(event: LSRemoveRemoteConnectionEvent) {
+            LOGGER.debug("Client#onRemoveRemoteConnection(connectionId = ${event.connectionId})")
 
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
 
-            for (mediaStreamTrack in mediaStreamTracks) {
+            for (mediaStreamTrack in event.mediaStreamTracks) {
                 LOGGER.debug("mediaStreamTrack={}", mediaStreamTrack)
             }
 
-            mVideoRenderManager!!.removeRemoteTrack(connectionId)
+            mVideoRenderManager!!.removeRemoteTrack(event.connectionId)
         }
 
-        override fun onAddRemoteTrack(connectionId: String, stream: MediaStream, track: MediaStreamTrack, metadata: Map<String, Any>, muteType: MuteType) {
-            LOGGER.debug("Client#onAddRemoteTrack({}, {}, {}, {})", connectionId, stream.id, track.id(), muteType)
+        override fun onAddRemoteTrack(event: LSAddRemoteTrackEvent) {
+            LOGGER.debug("Client#onAddRemoteTrack({}, {}, {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id(), event.mute)
 
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
 
-            if (track is VideoTrack) {
-                mVideoRenderManager!!.addRemoteTrack(connectionId, track)
+            if (event.mediaStreamTrack is VideoTrack) {
+                mVideoRenderManager!!.addRemoteTrack(event.connectionId, event.mediaStreamTrack as VideoTrack)
             }
 
         }
 
-        override fun onUpdateRemoteConnection(connectionId: String, metadata: Map<String, Any>) {
-            LOGGER.debug("Client#onUpdateRemoteConnection(connectionId = ${connectionId})")
+        override fun onUpdateRemoteConnection(event: LSUpdateRemoteConnectionEvent) {
+            LOGGER.debug("Client#onUpdateRemoteConnection(connectionId = ${event.connectionId})")
 
-            for ((key, value) in metadata) {
-                LOGGER.debug("metadata key=${key} : value=${value}")
-            }
-        }
-
-        override fun onUpdateRemoteTrack(connectionId: String, stream: MediaStream, track: MediaStreamTrack, metadata: Map<String, Any>) {
-            LOGGER.debug("Client#onUpdateRemoteTrack({} {}, {})", connectionId, stream.id, track.id())
-
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
         }
 
-        override fun onUpdateMute(connectionId: String, stream: MediaStream, track: MediaStreamTrack, muteType: MuteType) {
-            LOGGER.debug("Client#onUpdateMute({} {}, {}, {})", connectionId, stream.id, track.id(), muteType)
+        override fun onUpdateRemoteTrack(event: LSUpdateRemoteTrackEvent) {
+            LOGGER.debug("Client#onUpdateRemoteTrack({} {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id())
+
+            for ((key, value) in event.meta) {
+                LOGGER.debug("metadata key=${key} : value=${value}")
+            }
         }
 
-        override fun onChangeStability(connectionId: String, stability: Stability) {
-            LOGGER.debug("Client#onChangeStability({}, {})", connectionId, stability)
+        override fun onUpdateMute(event: LSUpdateMuteEvent) {
+            LOGGER.debug("Client#onUpdateMute({} {}, {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id(), event.mute)
+        }
+
+        override fun onChangeStability(event: LSChangeStabilityEvent) {
+            LOGGER.debug("Client#onChangeStability({}, {})", event.connectionId, event.stability)
         }
 
         override fun onError(error: SDKErrorEvent) {

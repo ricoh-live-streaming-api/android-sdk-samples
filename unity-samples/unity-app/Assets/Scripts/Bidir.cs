@@ -685,6 +685,7 @@ public class Bidir : MonoBehaviour
             uiTool.GetLocalRenderTarget().SetActive(false);
         }
 
+        renderLocalVideoTrack.Dispose();
         renderLocalVideoTrack = null;
     }
 
@@ -707,7 +708,7 @@ public class Bidir : MonoBehaviour
         /// <summary>
         /// 接続中の処理
         /// </summary>
-        void onConnecting()
+        void onConnecting(AndroidJavaObject connectingEvent)
         {
             app.logger.Debug("ClientListener#OnConnecting");
 
@@ -720,7 +721,7 @@ public class Bidir : MonoBehaviour
             , null);
         }
 
-        void onOpen()
+        void onOpen(AndroidJavaObject openEvent)
         {
             app.logger.Debug("ClientListener#onOpen");
 
@@ -742,7 +743,7 @@ public class Bidir : MonoBehaviour
             , null);
         }
 
-        void onClosing()
+        void onClosing(AndroidJavaObject closingEvent)
         {
             app.logger.Debug("ClientListener#onClosing");
 
@@ -755,7 +756,7 @@ public class Bidir : MonoBehaviour
             , null);
         }
 
-        void onClosed()
+        void onClosed(AndroidJavaObject closedEvent)
         {
             app.logger.Debug("ClientListener#onClosed");
             app.unityUIContext.Post(__ =>
@@ -792,8 +793,9 @@ public class Bidir : MonoBehaviour
              , null);
         }
 
-        void onAddLocalTrack(AndroidJavaObject track, AndroidJavaObject stream)
+        void onAddLocalTrack(AndroidJavaObject addLocalEvent)
         {
+            var track = addLocalEvent.Call<AndroidJavaObject>("getMediaStreamTrack");
             app.logger.Debug(String.Format("ClientListener#onAddLocalTrack({0})", track.Call<string>("id")));
 
             app.unityUIContext.Post(__ =>
@@ -812,28 +814,42 @@ public class Bidir : MonoBehaviour
             , null);
         }
 
-        void onAddRemoteConnection(string connectionId, AndroidJavaObject metadata)
+        void onAddRemoteConnection(AndroidJavaObject addRemoteConnectionEvent)
         {
-            var dict = Utils.GetDictionaryFromHashMap(metadata);
-
             var metadataStr = "";
-            foreach (var m in dict)
+            using (var meta = addRemoteConnectionEvent.Call<AndroidJavaObject>("getMeta"))
             {
-                metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                var dict = Utils.GetDictionaryFromHashMap(meta);
+
+                foreach (var m in dict)
+                {
+                    if (m.Value != null)
+                    {
+                        metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    }
+                }
             }
+
             app.logger.Debug(string.Format("ClientListener#onAddRemoteConnection(connectionId={0}, metadata={1})",
-                connectionId, metadataStr));
+                addRemoteConnectionEvent.Call<string>("getConnectionId"), metadataStr));
         }
 
-        void onRemoveRemoteConnection(string connectionId, AndroidJavaObject metadata, AndroidJavaObject mediaStreamTracks)
+        void onRemoveRemoteConnection(AndroidJavaObject removeRemoteConnectionEvent)
         {
-            var dict = Utils.GetDictionaryFromHashMap(metadata);
-
+            var connectionId = removeRemoteConnectionEvent.Call<string>("getConnectionId");
             var metadataStr = "";
-            foreach (var m in dict)
+            using (var meta = removeRemoteConnectionEvent.Call<AndroidJavaObject>("getMeta"))
             {
-                metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                var dict = Utils.GetDictionaryFromHashMap(meta);
+                foreach (var m in dict)
+                {
+                    if (m.Value != null)
+                    {
+                        metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    }
+                }
             }
+
             app.logger.Debug(string.Format("ClientListener#onRemoveRemoteConnection(connectionId={0}, metadata={1})",
                 connectionId, metadataStr));
 
@@ -842,95 +858,127 @@ public class Bidir : MonoBehaviour
                 app.RemoveRemoteTrackByConnectionId(connectionId);
             }
             , null);
-
         }
 
-        void onAddRemoteTrack(string connectionId, AndroidJavaObject stream, AndroidJavaObject mediaStreamTrack, AndroidJavaObject metadata, AndroidJavaObject muteType)
+        void onAddRemoteTrack(AndroidJavaObject addRemoteTrackEvent)
         {
-            var dict = Utils.GetDictionaryFromHashMap(metadata);
-
+            var connectionId = addRemoteTrackEvent.Call<string>("getConnectionId");
             var metadataStr = "";
-            foreach (var m in dict)
+            using (var meta = addRemoteTrackEvent.Call<AndroidJavaObject>("getMeta"))
+            using (var stream = addRemoteTrackEvent.Call<AndroidJavaObject>("getStream"))
+            using (var muteType = addRemoteTrackEvent.Call<AndroidJavaObject>("getMute"))
             {
-                metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
-            }
-
-            app.logger.Debug(String.Format("ClientListener#onAddRemoteTrack({0}, {1}, {2}, {3}, {4})",
-                connectionId, stream.Call<string>("getId"), mediaStreamTrack.Call<string>("id"), metadataStr, muteType.Call<string>("toString")));
-
-            app.unityUIContext.Post(__ =>
-            {
-                using(var cls = new AndroidJavaClass("org.webrtc.MediaStreamTrack"))
+                var dict = Utils.GetDictionaryFromHashMap(meta);
+                foreach (var m in dict)
                 {
-                    if(mediaStreamTrack.Call<string>("kind") == cls.GetStatic<string>("VIDEO_TRACK_KIND"))
+                    if (m.Value != null)
                     {
-                        AndroidJavaObject isPodObject;
-                        bool isPodUI = false;
-                        if (dict.TryGetValue("isPod", out isPodObject))
+                        metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    }
+                }
+                var mediaStreamTrack = addRemoteTrackEvent.Call<AndroidJavaObject>("getMediaStreamTrack");
+                app.logger.Debug(String.Format("ClientListener#onAddRemoteTrack({0}, {1}, {2}, {3}, {4})",
+                    connectionId, stream.Call<string>("getId"), mediaStreamTrack.Call<string>("id"), metadataStr, muteType.Call<string>("toString")));
+                app.unityUIContext.Post(__ =>
+                {
+                    using (var cls = new AndroidJavaClass("org.webrtc.MediaStreamTrack"))
+                    {
+                        if (mediaStreamTrack.Call<string>("kind") == cls.GetStatic<string>("VIDEO_TRACK_KIND"))
                         {
-                            isPodUI = isPodObject.Call<bool>("booleanValue");
+                            AndroidJavaObject isPodObject;
+                            bool isPodUI = false;
+                            if (dict.TryGetValue("isPod", out isPodObject))
+                            {
+                                isPodUI = isPodObject.Call<bool>("booleanValue");
+                            }
+
+                            string id = mediaStreamTrack.Call<string>("id");
+
+                            mediaStreamTrack.Call("addSink", new FrameUpdateListener(app, id));
+
+                            var content = Instantiate(app.baseContent, Vector3.zero, Quaternion.identity);
+                            content.name = string.Format("track_{0}", id);
+
+                            // すでにcoonectionIdと紐づいたViewがある場合は破棄する
+                            app.RemoveRemoteTrackByConnectionId(connectionId);
+
+                            app.remoteTracks.Add(id, new RemoteView(connectionId, id, content,
+                                new CompositeInfo(
+                                    CompositeFrameW, CompositeFrameH,
+                                    CompositeCutTopLeftX, CompositeCutTopLeftY,
+                                    CompositeCutBottomRightX, CompositeCutButtomRightY),
+                                isPodUI));
+                            app.needUpdateRemoteViewLayout = true;
+                            mediaStreamTrack.Dispose();
                         }
+                    }
+                }
+                , null);
 
-                        string id = mediaStreamTrack.Call<string>("id");
+            }
+        }
 
-                        mediaStreamTrack.Call("addSink", new FrameUpdateListener(app, id));
-
-                        var content = Instantiate(app.baseContent, Vector3.zero, Quaternion.identity);
-                        content.name = string.Format("track_{0}", id);
-
-                        // すでにcoonectionIdと紐づいたViewがある場合は破棄する
-                        app.RemoveRemoteTrackByConnectionId(connectionId);
-
-                        app.remoteTracks.Add(id, new RemoteView(connectionId, id, content,
-                            new CompositeInfo(
-                                CompositeFrameW, CompositeFrameH,
-                                CompositeCutTopLeftX, CompositeCutTopLeftY,
-                                CompositeCutBottomRightX, CompositeCutButtomRightY),
-                            isPodUI));
-                        app.needUpdateRemoteViewLayout = true;
+        void onUpdateRemoteConnection(AndroidJavaObject updateRemoteConnectionEvent)
+        {
+            var connectionId = updateRemoteConnectionEvent.Call<string>("getConnectionId");
+            var metadataStr = "";
+            using (var meta = updateRemoteConnectionEvent.Call<AndroidJavaObject>("getMeta"))
+            {
+                var dict = Utils.GetDictionaryFromHashMap(meta);
+                foreach (var m in dict)
+                {
+                    if (m.Value != null)
+                    {
+                        metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
                     }
                 }
             }
-            , null);
-        }
 
-        void onUpdateRemoteConnection(string connectionId, AndroidJavaObject metadata)
-        {
-            var dict = Utils.GetDictionaryFromHashMap(metadata);
-
-            var metadataStr = "";
-            foreach (var m in dict)
-            {
-                metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
-            }
             app.logger.Debug(string.Format("ClientListener#onUpdateRemoteConnection(connectionId={0}, metadata={1})",
                 connectionId, metadataStr));
         }
 
-        void onUpdateRemoteTrack(string connectionId, AndroidJavaObject stream, AndroidJavaObject mediaStreamTrack, AndroidJavaObject metadata)
+        void onUpdateRemoteTrack(AndroidJavaObject updateRemoteTrackEvent)
         {
-            var dict = Utils.GetDictionaryFromHashMap(metadata);
-
-            var metadataStr = "";
-            foreach (var m in dict)
+            var connectionId = updateRemoteTrackEvent.Call<string>("getConnectionId");
+            using (var meta = updateRemoteTrackEvent.Call<AndroidJavaObject>("getMeta"))
+            using (var stream = updateRemoteTrackEvent.Call<AndroidJavaObject>("getStream"))
+            using (var mediaStreamTrack = updateRemoteTrackEvent.Call<AndroidJavaObject>("getMediaStreamTrack"))
             {
-                metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                var metadataStr = "";
+                var dict = Utils.GetDictionaryFromHashMap(meta);
+                foreach (var m in dict)
+                {
+                    if (m.Value != null)
+                    {
+                        metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    }
+                }
+                app.logger.Debug(String.Format("ClientListener#onUpdateRemoteTrack({0}, {1}, {2}, {3})",
+                    connectionId, stream.Call<string>("getId"), mediaStreamTrack.Call<string>("id"), metadataStr));
             }
-
-            app.logger.Debug(String.Format("ClientListener#onUpdateRemoteTrack({0}, {1}, {2}, {3})",
-                connectionId, stream.Call<string>("getId"), mediaStreamTrack.Call<string>("id"), metadataStr));
         }
 
-        void onUpdateMute(string connectionId, AndroidJavaObject stream, AndroidJavaObject track, AndroidJavaObject muteType)
+        void onUpdateMute(AndroidJavaObject updateMuteEvent)
         {
-            app.logger.Debug(String.Format("ClientListener#onUpdateMute({0}, {1}, {2}, {3})",
-                connectionId, stream.Call<string>("getId"), track.Call<string>("id"), muteType.Call<string>("toString")));
+            var connectionId = updateMuteEvent.Call<string>("getConnectionId");
+            using (var muteType = updateMuteEvent.Call<AndroidJavaObject>("getMute"))
+            using (var stream = updateMuteEvent.Call<AndroidJavaObject>("getStream"))
+            using (var mediaStreamTrack = updateMuteEvent.Call<AndroidJavaObject>("getMediaStreamTrack"))
+            {
+                app.logger.Debug(String.Format("ClientListener#onUpdateMute({0}, {1}, {2}, {3})",
+                connectionId, stream.Call<string>("getId"), mediaStreamTrack.Call<string>("id"), muteType.Call<string>("toString")));
+            }
         }
 
-        void onChangeStability(string connectionId, AndroidJavaObject stability)
+        void onChangeStability(AndroidJavaObject chaneStabilityEvent)
         {
-            app.logger.Debug(String.Format("ClientListener#onChangeStability({0}, {1})",
+            var connectionId = chaneStabilityEvent.Call<string>("getConnectionId");
+            using (var stability = chaneStabilityEvent.Call<AndroidJavaObject>("getStability"))
+            {
+                app.logger.Debug(String.Format("ClientListener#onChangeStability({0}, {1})",
                 connectionId, stability.Call<string>("toString")));
+            }
         }
 
         void onError(AndroidJavaObject error)

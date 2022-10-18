@@ -20,7 +20,7 @@ RICOH Live Streaming API と THETA プラグインの組み合わせで配信す
 ```
 client_id=3341e140-0290-43f5-95a0-bd9f98d8ecdc
 client_secret=kxiFVi6lzf14dffq3fg46ghg7dip1ash74ioisudsensJ9fe89f4fjijoiafDVcNmg
-room_id=50aae54b-5c5f-467f-b4c7-b761b99802bf
+room_id=sample-room
 video_bitrate=10000
 initial_audio_mute=unmute
 ```

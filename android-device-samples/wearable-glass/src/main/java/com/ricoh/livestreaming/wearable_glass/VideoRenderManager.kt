@@ -81,6 +81,7 @@ class VideoRenderManager(private val view: SurfaceViewRenderer) {
         mRemoteTrackMap.remove(connectionId)
 
         if (isShowing) {
+            hide()
             // If the currently displayed participant is deleted, display the next.
             if (hasRemoteTrack()) {
                 // show remote video

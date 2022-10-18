@@ -17,7 +17,7 @@
     <string name="bitrate_label">Bitrate</string>
     <string name="bitrate_unit">kbps</string>
     <string name="room_id">Room ID:</string>
-    <string name="e2e_test_room_sample">e2e-test-room-sample</string>
+    <string name="e2e_test_room_sample">sample-room</string>
     <string name="default_connection_meta">{\"conn_meta_key\": \"conn_meta_value\"}</string>
     <string name="default_audio_meta">{\"audio_meta_key\": \"audio_meta_value\"}</string>
     <string name="default_video_meta">{\"video_meta_key\": \"video_meta_value\"}</string>

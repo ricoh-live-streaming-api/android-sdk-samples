@@ -23,7 +23,7 @@ class JwtAccessToken {
                 roomSpec: RoomSpec): String {
             val key = Keys.hmacShaKeyFor(clientSecret.toByteArray(StandardCharsets.UTF_8))
 
-            val connectionId = Base64.encodeToString(Math.random().toString().toByteArray(), Base64.DEFAULT)
+            val connectionId = "AndroidWearableGlass" + Base64.encodeToString(Math.random().toString().toByteArray(), Base64.DEFAULT)
                     .replace("=", "")
                     .replace("+", "")
                     .replace("/", "")

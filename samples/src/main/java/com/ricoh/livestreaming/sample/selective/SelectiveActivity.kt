@@ -37,7 +37,7 @@ class SelectiveActivity : BaseActivity() {
                 mViewBinding.controlsLayout.audioListSpinner,
                 mViewBinding.controlsLayout.cameraListSpinner,
                 mViewBinding.controlsLayout.connectButton
-        ))
+        ), "AndroidAPISamplesSelective")
 
         /**
          * ここから Selective サンプル

@@ -40,7 +40,7 @@ class MetaActivity : BaseActivity() {
                 mViewBinding.controlsLayout.audioListSpinner,
                 mViewBinding.controlsLayout.cameraListSpinner,
                 mViewBinding.controlsLayout.connectButton
-        ))
+        ), "AndroidAPISamplesMeta")
 
         /**
          * ここから Meta サンプル

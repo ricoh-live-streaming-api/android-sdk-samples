@@ -41,7 +41,7 @@ class DeviceActivity : BaseActivity() {
                 mViewBinding.controlsLayout.audioListSpinner,
                 mViewBinding.controlsLayout.cameraListSpinner,
                 mViewBinding.controlsLayout.connectButton
-        ))
+        ), "AndroidAPISamplesDevice")
 
         /**
          * ここから Device サンプル

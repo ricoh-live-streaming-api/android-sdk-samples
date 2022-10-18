@@ -19,15 +19,15 @@ public class RoomSpec
 
     public AndroidJavaObject GetSpecHashMap()
     {
-//        var mediaControl = new Dictionary<string, object>
-//        {
-//            ["bitrate_reservation_mbps"] = 10
-//        };
+        var mediaControl = new Dictionary<string, object>
+        {
+            ["bitrate_reservation_mbps"] = 25
+        };
 
         var dic = new Dictionary<string, object>
         {
             ["type"] = Enum.GetName(typeof(Type), type).ToLower(),
-//            ["media_control"] = mediaControl
+            ["media_control"] = mediaControl
         };
         return Utils.GetHashMap(dic);
     }

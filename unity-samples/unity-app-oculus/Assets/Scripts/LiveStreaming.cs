@@ -1,7 +1,6 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.UI;
-using System.IO;
 using System.Threading.Tasks;
 using System.Threading;
 using System.Timers;
@@ -33,12 +32,11 @@ public class LiveStreaming : MonoBehaviour
     [SerializeField]
     private GameObject RController = null;
     [SerializeField]
-    private Material videoMaterial = null;
-    [SerializeField]
-    private Material yuvVideoMaterial = null;
+    private Material rgbaMaterial = null;
 
     private SynchronizationContext unityUIContext;
     private AndroidJavaObject unityPlugin;
+    private AndroidJavaObject unityPixelReader;
     private AndroidJavaObject client;
     static private object frameLock = new object();
     static private object lockObject = new object();
@@ -48,17 +46,7 @@ public class LiveStreaming : MonoBehaviour
     private InputField inputFieldRoomID;
 
     // Texture
-    private Texture2D mainTex;
-    private Texture2D uTex;
-    private Texture2D vTex;
-    private Texture2D nativeTexture;
-    private RenderTexture renderTexture;
-
-    // Buffer
-    private byte[] yBuffer;
-    private byte[] uBuffer;
-    private byte[] vBuffer;
-    private byte[] pixelBuffer;
+    private Texture2D rgbaTexture;
 
     // Logger
     private Logger logger;
@@ -83,8 +71,6 @@ public class LiveStreaming : MonoBehaviour
     private Renderer equirectangularRenderer;
     private Renderer dualFisheyeRenderer;
     private Renderer normalVideoRenderer;
-
-    private bool isShowYUVVideo = true;
 
     [DllImport("ls-client")]
     private static extern IntPtr getRenderEventFunc();
@@ -126,30 +112,9 @@ public class LiveStreaming : MonoBehaviour
         dualFisheyeRenderer = dualFisheyeSphere.GetComponent<Renderer>();
         normalVideoRenderer = normalVideoPlane.GetComponent<Renderer>();
 
-        // setup Texture
-        mainTex = new Texture2D(2, 2);
-        mainTex.SetPixel(0, 0, Color.blue);
-        mainTex.SetPixel(1, 1, Color.blue);
-        mainTex.Apply();
-        equirectangularRenderer.material.mainTexture = mainTex;
-        dualFisheyeRenderer.material.mainTexture = mainTex;
-        normalVideoRenderer.material.mainTexture = mainTex;
-
-        uTex = new Texture2D(2, 2);
-        uTex.SetPixel(0, 0, Color.blue);
-        uTex.SetPixel(1, 1, Color.blue);
-        uTex.Apply();
-        equirectangularRenderer.material.SetTexture("_UTex", uTex);
-        dualFisheyeRenderer.material.SetTexture("_UTex", uTex);
-        normalVideoRenderer.material.SetTexture("_UTex", uTex);
-
-        vTex = new Texture2D(2, 2);
-        vTex.SetPixel(0, 0, Color.blue);
-        vTex.SetPixel(1, 1, Color.blue);
-        vTex.Apply();
-        equirectangularRenderer.material.SetTexture("_VTex", vTex);
-        dualFisheyeRenderer.material.SetTexture("_VTex", vTex);
-        normalVideoRenderer.material.SetTexture("_VTex", vTex);
+        equirectangularRenderer.material = rgbaMaterial;
+        dualFisheyeRenderer.material = rgbaMaterial;
+        normalVideoRenderer.material = rgbaMaterial;
 
         // setup UIHelper
         if (uiHelpersToInstantiate)
@@ -198,7 +163,10 @@ public class LiveStreaming : MonoBehaviour
         logger.Dispose();
         statsLogger?.Dispose();
         videoRenderManager.Clear();
+        unityPixelReader?.Call("release");
+        unityPixelReader?.Dispose();
         unityPlugin?.Call("onDestory");
+        unityPlugin?.Dispose();
     }
 
     // Update is called once per frame
@@ -236,111 +204,19 @@ public class LiveStreaming : MonoBehaviour
                         int width = buffer.Call<int>("getWidth");
                         int height = buffer.Call<int>("getHeight");
 
-                        if (IsTextureBuffer(buffer))
+                        if (rgbaTexture == null || rgbaTexture.width != width || rgbaTexture.height != height)
                         {
-                            // TextureBufferの場合はWebRTCライブラリ内でTextureにVideoFrameが描画される
-                            // Unity側ではそのTextureを利用してMaterialに反映する
-
-                            if (isShowYUVVideo)
-                            {
-                                // materialを切り替える
-                                isShowYUVVideo = false;
-                                equirectangularRenderer.material = videoMaterial;
-                                dualFisheyeRenderer.material = videoMaterial;
-                                normalVideoRenderer.material = videoMaterial;
-                            }
-
-                            int textureName = buffer.Call<int>("getTextureId");
-                            IntPtr textureId = new IntPtr(textureName);
-
-                            if (nativeTexture == null || nativeTexture.width != width || nativeTexture.height != height)
-                            {
-                                logger.Info(string.Format("create native texture. width={0}, height={1}", width, height));
-                                CleanUp();
-                                nativeTexture = Texture2D.CreateExternalTexture(width, height, TextureFormat.RGBA32, false, false, textureId);
-                                equirectangularRenderer.material.mainTexture = nativeTexture;
-                                dualFisheyeRenderer.material.mainTexture = nativeTexture;
-                                normalVideoRenderer.material.mainTexture = nativeTexture;
-                            }
-                            else
-                            {
-                                nativeTexture.UpdateExternalTexture(textureId);
-                            }
+                            logger.Info(string.Format("create rgbaTexture texture. width={0}, height={1}", width, height));
+                            CleanUp();
+                            rgbaTexture = new Texture2D(width, height, TextureFormat.RGB24, false);
+                            equirectangularRenderer.material.mainTexture = rgbaTexture;
+                            dualFisheyeRenderer.material.mainTexture = rgbaTexture;
+                            normalVideoRenderer.material.mainTexture = rgbaTexture;
                         }
-                        else
-                        {
-                            if (!isShowYUVVideo)
-                            {
-                                // materialを切り替える
-                                isShowYUVVideo = true;
-                                equirectangularRenderer.material = yuvVideoMaterial;
-                                dualFisheyeRenderer.material = yuvVideoMaterial;
-                                normalVideoRenderer.material = yuvVideoMaterial;
 
-                                SetTextureToMaterial(equirectangularRenderer.material, mainTex, uTex, vTex);
-                                SetTextureToMaterial(dualFisheyeRenderer.material, mainTex, uTex, vTex);
-                                SetTextureToMaterial(normalVideoRenderer.material, mainTex, uTex, vTex);
-                            }
-
-                            using (AndroidJavaObject i420Buffer = buffer.Call<AndroidJavaObject>("toI420"))
-                            {
-                                int chromaWidth = width / 2;
-                                int chromaHeight = height / 2;
-
-                                // Y-Plane
-                                if (mainTex.width != width || mainTex.height != height || mainTex.format != TextureFormat.Alpha8)
-                                {
-                                    mainTex = new Texture2D(width, height, TextureFormat.Alpha8, false);
-                                    yBuffer = new byte[width * height];
-                                    equirectangularRenderer.material.mainTexture = mainTex;
-                                    dualFisheyeRenderer.material.mainTexture = mainTex;
-                                    normalVideoRenderer.material.mainTexture = mainTex;
-                                }
-                                UploadPlaneDataToTexture(
-                                    unityPlugin,
-                                    i420Buffer,
-                                    "copyYPlaneData",
-                                    yBuffer,
-                                    width * height,
-                                    mainTex);
-
-                                // U-Plane
-                                if (uTex.width != chromaWidth || uTex.height != chromaHeight)
-                                {
-                                    uTex = new Texture2D(chromaWidth, chromaHeight, TextureFormat.Alpha8, false);
-                                    uBuffer = new byte[chromaWidth * chromaHeight];
-                                    equirectangularRenderer.material.SetTexture("_UTex", uTex);
-                                    dualFisheyeRenderer.material.SetTexture("_UTex", uTex);
-                                    normalVideoRenderer.material.SetTexture("_UTex", uTex);
-                                }
-                                UploadPlaneDataToTexture(
-                                    unityPlugin,
-                                    i420Buffer,
-                                    "copyUPlaneData",
-                                    uBuffer,
-                                    chromaWidth * chromaHeight,
-                                    uTex);
-
-                                // V-Plane
-                                if (vTex.width != chromaWidth || vTex.height != chromaHeight)
-                                {
-                                    vTex = new Texture2D(chromaWidth, chromaHeight, TextureFormat.Alpha8, false);
-                                    vBuffer = new byte[chromaWidth * chromaHeight];
-                                    equirectangularRenderer.material.SetTexture("_VTex", vTex);
-                                    dualFisheyeRenderer.material.SetTexture("_VTex", vTex);
-                                    normalVideoRenderer.material.SetTexture("_VTex", vTex);
-                                }
-                                UploadPlaneDataToTexture(
-                                    unityPlugin,
-                                    i420Buffer,
-                                    "copyVPlaneData",
-                                    vBuffer,
-                                    chromaWidth * chromaHeight,
-                                    vTex);
-
-                                i420Buffer.Call("release");
-                            }
-                        }
+                        var rgb888Buffer = unityPixelReader.Call<sbyte[]>("readPixelsAsync", pendingFrame);
+                        rgbaTexture.LoadRawTextureData((byte[])(Array)rgb888Buffer);
+                        rgbaTexture.Apply();
                     }
                 }
                 catch (Exception e)
@@ -412,51 +288,11 @@ public class LiveStreaming : MonoBehaviour
     /// </summary>
     private void CleanUp()
     {
-        if (nativeTexture != null)
+        if (rgbaTexture != null)
         {
-            GameObject.Destroy(nativeTexture);
-            nativeTexture = null;
+            GameObject.Destroy(rgbaTexture);
+            rgbaTexture = null;
         }
-
-        if (renderTexture != null)
-        {
-            renderTexture.Release();
-            GameObject.Destroy(renderTexture);
-            renderTexture = null;
-        }
-
-    }
-
-    /// <summary>
-    /// TextureBufferかどうかのチェック
-    /// </summary>
-    /// <param name="buffer">VideoFrameのBuffer</param>
-    /// <returns>true: TextureBuffer</returns>
-    private bool IsTextureBuffer(AndroidJavaObject buffer)
-    {
-        try
-        {
-            buffer.Call<int>("getTextureId");
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// MaterialにYUVTextureをセットする
-    /// </summary>
-    /// <param name="material">Material</param>
-    /// <param name="yTexture">Y Texture</param>
-    /// <param name="uTexture">U Texture</param>
-    /// <param name="vTexture">V Texture</param>
-    private void SetTextureToMaterial(Material material, Texture2D yTexture, Texture2D uTexture, Texture2D vTexture)
-    {
-        material.mainTexture = yTexture;
-        material.SetTexture("_UTex", uTexture);
-        material.SetTexture("_VTex", vTexture);
     }
 
     private void HMDUnmounted()
@@ -476,43 +312,6 @@ public class LiveStreaming : MonoBehaviour
         {
             // disconnect because application paused
             Disconnect();
-        }
-    }
-
-
-    /// <summary>
-    /// Textureへ画像データをアップデートする
-    /// </summary>
-    /// <param name="unityPlugin">java層のUnityPluginクラスへのアクセスが可能なオブジェクト</param>
-    /// <param name="yuvPlaneData">YUVデータが格納されたバッファ</param>
-    /// <param name="methodName">java層のUnityPluginクラスの呼び出し先メソッド名</param>
-    /// <param name="dstBuffer">Planeデータの書き込み先。このデータがTextureに転送される</param>
-    /// <param name="size">書き込みサイズ</param>
-    /// <param name="texture">書き込み先のTexture</param>
-    private void UploadPlaneDataToTexture(
-        AndroidJavaObject unityPlugin,
-        AndroidJavaObject yuvPlaneData,
-        string methodName,
-        byte[] dstBuffer,
-        int size,
-        Texture2D texture)
-    {
-        var handle = default(GCHandle);
-        try
-        {
-            handle = GCHandle.Alloc(dstBuffer, GCHandleType.Pinned);
-            var ptr = handle.AddrOfPinnedObject();
-
-            unityPlugin.Call(methodName, yuvPlaneData, ptr.ToInt32(), 0, size);
-            texture.LoadRawTextureData(dstBuffer);
-            texture.Apply();
-        }
-        finally
-        {
-            if (handle != default(GCHandle))
-            {
-                handle.Free();
-            }
         }
     }
 
@@ -580,6 +379,7 @@ public class LiveStreaming : MonoBehaviour
                     }
                     client = unityPlugin.Call<AndroidJavaObject>("getClient");
                     client.Call("setEventListener", new ClientListener(this));
+                    unityPixelReader = new AndroidJavaObject("com.ricoh.livestreaming.unity.UnityPixelReader", unityPlugin);
 
                     var roomSpec = new RoomSpec(RoomSpec.Type.SFU);
                     var accessToken = JwtAccessToken.CreateAccessToken(Secrets.CLIENT_SECRET, roomId, roomSpec);
@@ -675,7 +475,7 @@ public class LiveStreaming : MonoBehaviour
         }
 
 
-        void onConnecting()
+        void onConnecting(AndroidJavaObject connectingEvent)
         {
             app.logger.Debug("ClientListener#OnConnecting");
 
@@ -689,7 +489,7 @@ public class LiveStreaming : MonoBehaviour
              , null);
         }
 
-        void onOpen()
+        void onOpen(AndroidJavaObject openEvent)
         {
             app.logger.Debug("ClientListener#OnOpen");
 
@@ -714,7 +514,7 @@ public class LiveStreaming : MonoBehaviour
              , null);
         }
 
-        void onClosing()
+        void onClosing(AndroidJavaObject closingEvent)
         {
             app.logger.Debug("ClientListener#onClosing");
 
@@ -727,7 +527,7 @@ public class LiveStreaming : MonoBehaviour
              , null);
         }
 
-        void onClosed()
+        void onClosed(AndroidJavaObject closedEvent)
         {
             app.logger.Debug("ClientListener#onClosed");
 
@@ -745,9 +545,13 @@ public class LiveStreaming : MonoBehaviour
                 app.statsLogger = null;
 
                 app.client?.Call("setEventListener", null);
+                app.client?.Dispose();
                 app.client = null;
 
+                app.unityPixelReader?.Call("release");
+                app.unityPixelReader?.Dispose();
                 app.unityPlugin?.Call("onDestroy");
+                app.unityPlugin?.Dispose();
                 app.unityPlugin = null;
                 app.isConnected = false;
                 app.videoRenderManager.Clear();
@@ -769,36 +573,48 @@ public class LiveStreaming : MonoBehaviour
              , null);
         }
 
-        void onAddLocalTrack(AndroidJavaObject track, AndroidJavaObject stream)
+        void onAddLocalTrack(AndroidJavaObject addLocalEvent)
         {
-            app.logger.Debug(string.Format("ClientListener#onAddLocalTrack({0})", track.Call<string>("id")));
+            using (var track = addLocalEvent.Call<AndroidJavaObject>("getMediaStreamTrack"))
+            {
+                app.logger.Debug(string.Format("ClientListener#onAddLocalTrack({0})", track.Call<string>("id")));
+            }
         }
 
-        void onAddRemoteConnection(string connectionId, AndroidJavaObject metadata)
+        void onAddRemoteConnection(AndroidJavaObject addRemoteConnectionEvent)
         {
-            var dict = Utils.GetDictionaryFromHashMap(metadata);
 
             var metadataStr = "";
-            foreach (var m in dict)
+            using (var meta = addRemoteConnectionEvent.Call<AndroidJavaObject>("getMeta"))
             {
-                if (m.Value != null) {
-                    metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                var dict = Utils.GetDictionaryFromHashMap(meta);
+
+                foreach (var m in dict)
+                {
+                    if (m.Value != null)
+                    {
+                        metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    }
                 }
             }
             app.logger.Debug(string.Format("ClientListener#onAddRemoteConnection(connectionId={0}, metadata={1})",
-                connectionId, metadataStr));
+                addRemoteConnectionEvent.Call<string>("getConnectionId"), metadataStr));
         }
 
-        void onRemoveRemoteConnection(string connectionId, AndroidJavaObject metadata, AndroidJavaObject mediaStreamTracks)
+        void onRemoveRemoteConnection(AndroidJavaObject removeRemoteConnectionEvent)
         {
-            var dict = Utils.GetDictionaryFromHashMap(metadata);
-
+            var connectionId = removeRemoteConnectionEvent.Call<string>("getConnectionId");
             var metadataStr = "";
-            foreach (var m in dict)
+            using (var meta = removeRemoteConnectionEvent.Call<AndroidJavaObject>("getMeta"))
             {
-                if (m.Value != null)
+                var dict = Utils.GetDictionaryFromHashMap(meta);
+
+                foreach (var m in dict)
                 {
-                    metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    if (m.Value != null)
+                    {
+                        metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    }
                 }
             }
             app.logger.Debug(string.Format("ClientListener#onRemoveRemoteConnection(connectionId={0}, metadata={1})",
@@ -819,41 +635,52 @@ public class LiveStreaming : MonoBehaviour
             }
         }
 
-        void onAddRemoteTrack(string connectionId, AndroidJavaObject stream, AndroidJavaObject mediaStreamTrack, AndroidJavaObject metadata, AndroidJavaObject muteType)
+        void onAddRemoteTrack(AndroidJavaObject addRemoteTrackEvent)
         {
-            var dict = Utils.GetDictionaryFromHashMap(metadata);
-
+            var connectionId = addRemoteTrackEvent.Call<string>("getConnectionId");
             var metadataStr = "";
-            foreach (var m in dict)
+            using (var meta = addRemoteTrackEvent.Call<AndroidJavaObject>("getMeta"))
+            using (var stream = addRemoteTrackEvent.Call<AndroidJavaObject>("getStream"))
+            using (var muteType = addRemoteTrackEvent.Call<AndroidJavaObject>("getMute"))
             {
-                if (m.Value != null)
+                var dict = Utils.GetDictionaryFromHashMap(meta);
+
+                foreach (var m in dict)
                 {
-                    metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    if (m.Value != null)
+                    {
+                        metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    }
                 }
-            }
+                var mediaStreamTrack = addRemoteTrackEvent.Call<AndroidJavaObject>("getMediaStreamTrack");
 
-            app.logger.Debug(string.Format("ClientListener#onAddRemoteTrack({0}, {1}, {2}, {3}, {4})",
-                connectionId, stream.Call<string>("getId"), mediaStreamTrack.Call<string>("id"), metadataStr, muteType.Call<string>("toString")));
+                app.logger.Debug(string.Format("ClientListener#onAddRemoteTrack({0}, {1}, {2}, {3}, {4})",
+                    connectionId, stream.Call<string>("getId"), mediaStreamTrack.Call<string>("id"), metadataStr, muteType.Call<string>("toString")));
 
-            using (AndroidJavaClass cls = new AndroidJavaClass("org.webrtc.MediaStreamTrack"))
-            {
-                if (mediaStreamTrack.Call<string>("kind") == cls.GetStatic<string>("VIDEO_TRACK_KIND"))
+                using (AndroidJavaClass cls = new AndroidJavaClass("org.webrtc.MediaStreamTrack"))
                 {
-                    app.videoRenderManager.AddRemoteTrack(connectionId, mediaStreamTrack, app.GetVideoFormat(dict));
+                    if (mediaStreamTrack.Call<string>("kind") == cls.GetStatic<string>("VIDEO_TRACK_KIND"))
+                    {
+                        app.videoRenderManager.AddRemoteTrack(connectionId, mediaStreamTrack, app.GetVideoFormat(dict));
+                    }
                 }
             }
         }
 
-        void onUpdateRemoteConnection(string connectionId, AndroidJavaObject metadata)
+        void onUpdateRemoteConnection(AndroidJavaObject updateRemoteConnectionEvent)
         {
-            var dict = Utils.GetDictionaryFromHashMap(metadata);
-
+            var connectionId = updateRemoteConnectionEvent.Call<string>("getConnectionId");
             var metadataStr = "";
-            foreach (var m in dict)
+            using (var meta = updateRemoteConnectionEvent.Call<AndroidJavaObject>("getMeta"))
             {
-                if (m.Value != null)
+                var dict = Utils.GetDictionaryFromHashMap(meta);
+
+                foreach (var m in dict)
                 {
-                    metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    if (m.Value != null)
+                    {
+                        metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    }
                 }
             }
 
@@ -861,30 +688,49 @@ public class LiveStreaming : MonoBehaviour
                 connectionId, metadataStr));
         }
 
-        void onUpdateRemoteTrack(string connectionId, AndroidJavaObject stream, AndroidJavaObject mediaStreamTrack, AndroidJavaObject metadata)
+        void onUpdateRemoteTrack(AndroidJavaObject updateRemoteTrackEvent)
         {
-            var dict = Utils.GetDictionaryFromHashMap(metadata);
-
-            var metadataStr = "";
-            foreach (var m in dict)
+            var connectionId = updateRemoteTrackEvent.Call<string>("getConnectionId");
+            using (var meta = updateRemoteTrackEvent.Call<AndroidJavaObject>("getMeta"))
+            using (var stream = updateRemoteTrackEvent.Call<AndroidJavaObject>("getStream"))
+            using (var mediaStreamTrack = updateRemoteTrackEvent.Call<AndroidJavaObject>("getMediaStreamTrack"))
             {
-                metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                var metadataStr = "";
+                var dict = Utils.GetDictionaryFromHashMap(meta);
+
+                foreach (var m in dict)
+                {
+                    if (m.Value != null)
+                    {
+                        metadataStr += $"({m.Key}, {m.Value.Call<string>("toString")})";
+                    }
+                }
+
+                app.logger.Debug(string.Format("ClientListener#onUpdateRemoteTrack({0}, {1}, {2}, {3})",
+                    connectionId, stream.Call<string>("getId"), mediaStreamTrack.Call<string>("id"), metadataStr));
             }
-
-            app.logger.Debug(string.Format("ClientListener#onUpdateRemoteTrack({0}, {1}, {2}, {3})",
-                connectionId, stream.Call<string>("getId"), mediaStreamTrack.Call<string>("id"), metadataStr));
         }
 
-        void onUpdateMute(string connectionId, AndroidJavaObject stream, AndroidJavaObject track, AndroidJavaObject muteType)
+        void onUpdateMute(AndroidJavaObject updateMuteEvent)
         {
-            app.logger.Debug(string.Format("ClientListener#onUpdateMute({0}, {1}, {2}, {3})",
-                connectionId, stream.Call<string>("getId"), track.Call<string>("id"), muteType.Call<string>("toString")));
+            var connectionId = updateMuteEvent.Call<string>("getConnectionId");
+            using (var muteType = updateMuteEvent.Call<AndroidJavaObject>("getMute"))
+            using (var stream = updateMuteEvent.Call<AndroidJavaObject>("getStream"))
+            using (var mediaStreamTrack = updateMuteEvent.Call<AndroidJavaObject>("getMediaStreamTrack")) 
+            {
+                app.logger.Debug(string.Format("ClientListener#onUpdateMute({0}, {1}, {2}, {3})",
+                    connectionId, stream.Call<string>("getId"), mediaStreamTrack.Call<string>("id"), muteType.Call<string>("toString")));
+            }
         }
 
-        void onChangeStability(string connectionId, AndroidJavaObject stability)
+        void onChangeStability(AndroidJavaObject chaneStabilityEvent)
         {
-            app.logger.Debug(String.Format("ClientListener#onChangeStability({0}, {1})",
-                connectionId, stability.Call<string>("toString")));
+            var connectionId = chaneStabilityEvent.Call<string>("getConnectionId");
+            using (var stability = chaneStabilityEvent.Call<AndroidJavaObject>("getStability"))
+            {
+                app.logger.Debug(String.Format("ClientListener#onChangeStability({0}, {1})",
+                    connectionId, stability.Call<string>("toString")));
+            }
         }
 
         void onError(AndroidJavaObject error)

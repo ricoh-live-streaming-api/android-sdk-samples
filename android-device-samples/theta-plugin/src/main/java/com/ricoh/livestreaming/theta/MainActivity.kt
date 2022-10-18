@@ -6,6 +6,7 @@ package com.ricoh.livestreaming.theta
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.hardware.SensorManager
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
@@ -76,6 +77,9 @@ class MainActivity : PluginActivity() {
     private var mRtcStatsLogger: RTCStatsLogger? = null
 
     private var mStatsTimer: Timer? = null
+
+    private var mAttitude: Attitude? = null
+    private val mVideoMetaSendTimerTask = TimerTaskRunner()
 
     private var audioMute = MuteType.HARD_MUTE
 
@@ -195,7 +199,7 @@ class MainActivity : PluginActivity() {
         }
 
         // Display off button
-        if ("RICOH THETA X" == Build.MODEL) {
+        if (isThetaX()) {
             mActivityMainBinding.displayOffButton.setOnClickListener {
                 prevDisplayBrightness = getDisplayBrightness()
                 setDisplayBrightness(0)
@@ -207,7 +211,7 @@ class MainActivity : PluginActivity() {
         mActivityMainBinding.displayOffButton.isEnabled = false
 
         // Zenith correction
-        if ("RICOH THETA X" == Build.MODEL) {
+        if (isThetaX()) {
             mActivityMainBinding.zenithCorrectionRadio.setOnCheckedChangeListener { _, checkedId ->
                 val c = capturer
                 if (c is ThetaXCameraCapturer) {
@@ -216,6 +220,11 @@ class MainActivity : PluginActivity() {
             }
         } else {
             mActivityMainBinding.zenithCorrectionLayout.visibility = View.GONE
+        }
+
+        if (isSFU() && !isThetaX()) {
+            val sensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
+            mAttitude = Attitude(sensorManager)
         }
     }
 
@@ -268,7 +277,7 @@ class MainActivity : PluginActivity() {
     override fun onResume() {
         super.onResume()
 
-        if ("RICOH THETA X" == Build.MODEL) {
+        if (isThetaX()) {
             val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
             savedAudioMode = audioManager.mode
@@ -348,9 +357,13 @@ class MainActivity : PluginActivity() {
                             LOGGER.info("Try to connect. RoomType={}", Config.getRoomType())
                             disableBFormat()
 
+                            if (isSFU() && !isThetaX()) {
+                                mAttitude!!.start()
+                            }
+
                             val roomSpec = RoomSpec(Config.getRoomType())
                             val rand = Random()
-                            val connectionId = "THETA" + rand.nextInt(1000)
+                            val connectionId = "AndroidThetaPlugIn" + rand.nextInt(1000)
                             val dateTimeZone = ThetaWebApiClient.getDateTimeZone()
                             val dateFormat = SimpleDateFormat("yyyy:MM:dd HH:mm:ssZZ")
                             val date = dateFormat.parse(dateTimeZone)
@@ -378,7 +391,16 @@ class MainActivity : PluginActivity() {
                             }
                             for (track in stream.videoTracks) {
                                 val trackOption = LSTrackOption.Builder()
-                                        .meta(mapOf("isTheta" to true, "thetaVideoFormat" to "eq", "mediaType" to "VIDEO_AUDIO"))
+                                        .meta(mutableMapOf<String, Any>().apply {
+                                            this["isTheta"] = true
+                                            this["thetaVideoFormat"] = "eq"
+                                            this["mediaType"] = "VIDEO_AUDIO"
+                                            if (!isThetaX()) {
+                                                this["yaw"] = mAttitude!!.getDegYaw()
+                                                this["pitch"] = mAttitude!!.getDegPitch()
+                                                this["roll"] =  mAttitude!!.getDegRoll()
+                                            }
+                                        }.toMap())
                                         .build()
                                 lsTracks.add(LSTrack(track, stream, trackOption))
                             }
@@ -423,7 +445,7 @@ class MainActivity : PluginActivity() {
             mClient?.disconnect()
         }.get()
 
-        if ("RICOH THETA X" == Build.MODEL) {
+        if (isThetaX()) {
             val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
             audioManager.mode = savedAudioMode
@@ -438,6 +460,10 @@ class MainActivity : PluginActivity() {
                 setDisplayBrightness(prevDisplayBrightness)
                 isDisplayOff = false
             }
+        } else {
+            if (isSFU()) {
+                mAttitude!!.stop()
+            }
         }
     }
 
@@ -449,7 +475,7 @@ class MainActivity : PluginActivity() {
     }
 
     inner class ClientListener : Client.Listener {
-        override fun onConnecting() {
+        override fun onConnecting(event: LSConnectingEvent) {
             LOGGER.debug("Client#onConnecting")
             notificationCameraClose()
             notificationLedBlink(LedTarget.LED6, LedColor.BLUE, 250)
@@ -460,12 +486,19 @@ class MainActivity : PluginActivity() {
             }
         }
 
-        override fun onOpen() {
+        override fun onOpen(event: LSOpenEvent) {
             LOGGER.debug("Client#onOpen")
             val path = createFilePath() + ".log"
             LOGGER.info("create log file: $path")
             mRtcStatsLogger = RTCStatsLogger(File(path))
             capturer?.start()
+
+            if (isSFU()) {
+                if (!isThetaX()) {
+                    mVideoMetaSendTimerTask.add(AttitudeSendTimerTask(), 10 * 1000)
+                }
+                mVideoMetaSendTimerTask.start()
+            }
 
             mStatsTimer = Timer(true)
             mStatsTimer?.schedule(object : TimerTask() {
@@ -493,7 +526,7 @@ class MainActivity : PluginActivity() {
             }
         }
 
-        override fun onClosing() {
+        override fun onClosing(event: LSClosingEvent) {
             LOGGER.debug("Client#onClosing")
             notificationLedBlink(LedTarget.LED6, LedColor.BLUE, 250)
             notificationAudioClose()
@@ -507,7 +540,7 @@ class MainActivity : PluginActivity() {
             }
         }
 
-        override fun onClosed() {
+        override fun onClosed(event: LSClosedEvent) {
             LOGGER.debug("Client#onClosed")
             mStatsTimer?.cancel()
             mStatsTimer = null
@@ -519,6 +552,15 @@ class MainActivity : PluginActivity() {
             synchronized(LOCK) {
                 mRtcStatsLogger?.close()
                 mRtcStatsLogger = null
+
+                if (isSFU()) {
+                    if (!isThetaX()) {
+                        mAttitude!!.stop()
+                    }
+                    mVideoMetaSendTimerTask.stop()
+                    mVideoMetaSendTimerTask.clear()
+                }
+
                 capturer?.stop()
                 capturer?.release()
                 mClient?.setEventListener(null)
@@ -530,60 +572,60 @@ class MainActivity : PluginActivity() {
             notificationCameraOpen()
         }
 
-        override fun onAddLocalTrack(track: MediaStreamTrack, stream: MediaStream) {
-            LOGGER.debug("Client#onAddLocalTrack({})", track.id())
+        override fun onAddLocalTrack(event: LSAddLocalTrackEvent) {
+            LOGGER.debug("Client#onAddLocalTrack({})", event.mediaStreamTrack.id())
         }
 
-        override fun onAddRemoteConnection(connectionId: String, metadata: Map<String, Any>) {
-            LOGGER.debug("Client#onAddRemoteConnection(connectionId = ${connectionId})")
+        override fun onAddRemoteConnection(event: LSAddRemoteConnectionEvent) {
+            LOGGER.debug("Client#onAddRemoteConnection(connectionId = ${event.connectionId})")
 
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
         }
 
-        override fun onRemoveRemoteConnection(connectionId: String, metadata: Map<String, Any>, mediaStreamTracks: List<MediaStreamTrack>) {
-            LOGGER.debug("Client#onRemoveRemoteConnection(connectionId = ${connectionId})")
+        override fun onRemoveRemoteConnection(event: LSRemoveRemoteConnectionEvent) {
+            LOGGER.debug("Client#onRemoveRemoteConnection(connectionId = ${event.connectionId})")
 
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
 
-            for (mediaStreamTrack in mediaStreamTracks) {
+            for (mediaStreamTrack in event.mediaStreamTracks) {
                 LOGGER.debug("mediaStreamTrack={}", mediaStreamTrack)
             }
         }
 
-        override fun onAddRemoteTrack(connectionId: String, stream: MediaStream, track: MediaStreamTrack, metadata: Map<String, Any>, muteType: MuteType) {
-            LOGGER.debug("Client#onAddRemoteTrack({}, {}, {}, {})", connectionId, stream.id, track.id(), muteType)
+        override fun onAddRemoteTrack(event: LSAddRemoteTrackEvent) {
+            LOGGER.debug("Client#onAddRemoteTrack({}, {}, {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id(), event.mute)
 
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
         }
 
-        override fun onUpdateRemoteConnection(connectionId: String, metadata: Map<String, Any>) {
-            LOGGER.debug("Client#onUpdateRemoteConnection(connectionId = ${connectionId})")
+        override fun onUpdateRemoteConnection(event: LSUpdateRemoteConnectionEvent) {
+            LOGGER.debug("Client#onUpdateRemoteConnection(connectionId = ${event.connectionId})")
 
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
         }
 
-        override fun onUpdateRemoteTrack(connectionId: String, stream: MediaStream, track: MediaStreamTrack, metadata: Map<String, Any>) {
-            LOGGER.debug("Client#onUpdateRemoteTrack({} {}, {})", connectionId, stream.id, track.id())
+        override fun onUpdateRemoteTrack(event: LSUpdateRemoteTrackEvent) {
+            LOGGER.debug("Client#onUpdateRemoteTrack({} {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id())
 
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
         }
 
-        override fun onUpdateMute(connectionId: String, stream: MediaStream, track: MediaStreamTrack, muteType: MuteType) {
-            LOGGER.debug("Client#onUpdateMute({} {}, {}, {})", connectionId, stream.id, track.id(), muteType)
+        override fun onUpdateMute(event: LSUpdateMuteEvent) {
+            LOGGER.debug("Client#onUpdateMute({} {}, {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id(), event.mute)
         }
 
-        override fun onChangeStability(connectionId: String, stability: Stability) {
-            LOGGER.debug("Client#onChangeStability({}, {})", connectionId, stability)
+        override fun onChangeStability(event: LSChangeStabilityEvent) {
+            LOGGER.debug("Client#onChangeStability({}, {})", event.connectionId, event.stability)
         }
 
         override fun onError(error: SDKErrorEvent) {
@@ -633,5 +675,46 @@ class MainActivity : PluginActivity() {
         mActivityMainBinding.currentBitrateText.text = getString(
                 R.string.current_bitrate,
                 bitrateKbps / 1_000)
+    }
+
+    private fun isThetaX(): Boolean {
+        return "RICOH THETA X" == Build.MODEL
+    }
+
+    private fun isSFU(): Boolean {
+        return "sfu" == Config.getRoomType().typeStr
+    }
+
+    inner class AttitudeSendTimerTask : TimerTask() {
+        override fun run() {
+            val track = lsTracks.find { it.mediaStreamTrack.kind() == "video" }
+            if (track == null) {
+                LOGGER.info("Not found video track")
+                return
+            }
+
+            val yaw = mAttitude!!.getDegYaw()
+            val pitch = mAttitude!!.getDegPitch()
+            val roll = mAttitude!!.getDegRoll()
+            synchronized(LOCK) {
+                if (mClient != null && mClient!!.state == Client.State.OPEN) {
+                    try {
+                        LOGGER.debug("attitude(yaw={} pitch={} roll={})", yaw, pitch, roll)
+                        mClient!!.updateTrackMeta(
+                                track,
+                                mapOf(
+                                        "isTheta" to true,
+                                        "thetaVideoFormat" to "eq",
+                                        "mediaType" to "VIDEO_AUDIO",
+                                        "yaw" to yaw,
+                                        "pitch" to pitch,
+                                        "roll" to roll
+                                ))
+                    } catch (e: SDKError) {
+                        LOGGER.error(e.toReportString())
+                    }
+                }
+            }
+        }
     }
 }

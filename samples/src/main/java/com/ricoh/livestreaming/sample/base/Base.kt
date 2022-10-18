@@ -73,7 +73,7 @@ abstract class BaseActivity : AppCompatActivity() {
         }
     }
 
-    fun setBaseView(baseViewBinding: BaseViewBinding) {
+    fun setBaseView(baseViewBinding: BaseViewBinding, activity: String) {
         mBaseViewBinding = baseViewBinding
 
         mEgl = EglBase.create()
@@ -101,7 +101,7 @@ abstract class BaseActivity : AppCompatActivity() {
             /** Client インスタンスを生成して connect / disconnect します */
             if (mClient == null) {
                 createClient(ClientListener())
-                connect(mConnectOption)
+                connect(mConnectOption, activity)
             } else {
                 disconnect()
             }
@@ -153,11 +153,11 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     /** connect API を用いてサーバーに接続します */
-    private fun connect(connectOption: ConnectOption) = executor.safeSubmit {
+    private fun connect(connectOption: ConnectOption, prefix: String) = executor.safeSubmit {
         LOGGER.info("Try to connect. RoomType={}", Config.roomType.value.typeStr)
 
         val roomSpec = RoomSpec(Config.roomType.value)
-        val accessToken = JwtAccessToken.createAccessToken(BuildConfig.CLIENT_SECRET, mBaseViewBinding.roomId.text.toString(), roomSpec)
+        val accessToken = JwtAccessToken.createAccessToken(BuildConfig.CLIENT_SECRET, mBaseViewBinding.roomId.text.toString(), roomSpec, prefix)
 
         createVideoCapturer(mBaseViewBinding.cameraListSpinner.selectedItem as CameraInfo)
         val stream = getVideoStream()
@@ -248,26 +248,26 @@ abstract class BaseActivity : AppCompatActivity() {
 
     inner class ClientListener : Client.Listener {
 
-        override fun onConnecting() {
+        override fun onConnecting(event: LSConnectingEvent) {
             LOGGER.debug("Client#onConnecting")
 
             eventOnConnecting()
         }
 
-        override fun onOpen() {
+        override fun onOpen(event: LSOpenEvent) {
             LOGGER.debug("Client#onOpen")
 
             mVideoCapturer!!.start()
             eventOnOpen()
         }
 
-        override fun onClosing() {
+        override fun onClosing(event: LSClosingEvent) {
             LOGGER.debug("Client#onClosing")
 
             eventOnClosing()
         }
 
-        override fun onClosed() {
+        override fun onClosed(event: LSClosedEvent) {
             LOGGER.debug("Client#onClosed")
 
             synchronized(LOCK) {
@@ -284,73 +284,76 @@ abstract class BaseActivity : AppCompatActivity() {
             eventOnClosed()
         }
 
-        override fun onAddLocalTrack(track: MediaStreamTrack, stream: MediaStream) {
-            LOGGER.debug("Client#onAddLocalTrack({})", track.id())
+        override fun onAddLocalTrack(event: LSAddLocalTrackEvent) {
+            LOGGER.debug("Client#onAddLocalTrack({})", event.mediaStreamTrack.id())
 
-            if (track is VideoTrack) {
+            if (event.mediaStreamTrack is VideoTrack) {
                 runOnUiThread {
-                    mViewLayoutManager!!.addLocalTrack(track)
+                    mViewLayoutManager!!.addLocalTrack(event.mediaStreamTrack as VideoTrack)
                 }
             }
         }
 
-        override fun onAddRemoteConnection(connectionId: String, metadata: Map<String, Any>) {
-            LOGGER.debug("Client#onAddRemoteConnection(connectionId = ${connectionId})")
+        override fun onAddRemoteConnection(event: LSAddRemoteConnectionEvent) {
+            LOGGER.debug("Client#onAddRemoteConnection(connectionId = ${event.connectionId})")
 
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
 
-            eventOnAddRemoteConnection(connectionId, metadata)
+            eventOnAddRemoteConnection(event.connectionId, event.meta)
         }
 
-        override fun onRemoveRemoteConnection(connectionId: String, metadata: Map<String, Any>, mediaStreamTracks: List<MediaStreamTrack>) {
-            LOGGER.debug("Client#onRemoveRemoteConnection(connectionId = ${connectionId})")
+        override fun onRemoveRemoteConnection(event: LSRemoveRemoteConnectionEvent) {
+            LOGGER.debug("Client#onRemoveRemoteConnection(connectionId = ${event.connectionId})")
 
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
 
-            for (mediaStreamTrack in mediaStreamTracks) {
+            for (mediaStreamTrack in event.mediaStreamTracks) {
                 LOGGER.debug("mediaStreamTrack={}", mediaStreamTrack)
             }
 
+            runOnUiThread {
+                mViewLayoutManager!!.removeRemoteTrack(event.connectionId)
+            }
         }
 
-        override fun onAddRemoteTrack(connectionId: String, stream: MediaStream, track: MediaStreamTrack, metadata: Map<String, Any>, muteType: MuteType) {
-            LOGGER.debug("Client#onAddRemoteTrack({} {}, {}, {})", connectionId, stream.id, track.id(), muteType)
+        override fun onAddRemoteTrack(event: LSAddRemoteTrackEvent) {
+            LOGGER.debug("Client#onAddRemoteTrack({} {}, {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id(), event.mute)
 
-            for ((key, value) in metadata) {
+            for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
 
-            if (track is VideoTrack) {
+            if (event.mediaStreamTrack is VideoTrack) {
                 runOnUiThread {
-                    mViewLayoutManager!!.addRemoteTrack(connectionId, track)
+                    mViewLayoutManager!!.addRemoteTrack(event.connectionId, event.mediaStreamTrack as VideoTrack)
                 }
             }
         }
 
-        override fun onUpdateRemoteConnection(connectionId: String, metadata: Map<String, Any>) {
-            LOGGER.debug("Client#onUpdateRemoteConnection(connectionId = ${connectionId})")
+        override fun onUpdateRemoteConnection(event: LSUpdateRemoteConnectionEvent) {
+            LOGGER.debug("Client#onUpdateRemoteConnection(connectionId = ${event.connectionId})")
 
-            eventOnUpdateRemoteConnection(connectionId, metadata)
+            eventOnUpdateRemoteConnection(event.connectionId, event.meta)
         }
 
-        override fun onUpdateRemoteTrack(connectionId: String, stream: MediaStream, track: MediaStreamTrack, metadata: Map<String, Any>) {
-            LOGGER.debug("Client#onUpdateRemoteTrack({} {}, {})", connectionId, stream.id, track.id())
+        override fun onUpdateRemoteTrack(event: LSUpdateRemoteTrackEvent) {
+            LOGGER.debug("Client#onUpdateRemoteTrack({} {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id())
 
-            eventOnUpdateRemoteTrack(connectionId, stream, track, metadata)
+            eventOnUpdateRemoteTrack(event.connectionId, event.stream, event.mediaStreamTrack, event.meta)
         }
 
-        override fun onUpdateMute(connectionId: String, stream: MediaStream, track: MediaStreamTrack, muteType: MuteType) {
-            LOGGER.debug("Client#onUpdateMute({} {}, {}, {})", connectionId, stream.id, track.id(), muteType)
+        override fun onUpdateMute(event: LSUpdateMuteEvent) {
+            LOGGER.debug("Client#onUpdateMute({} {}, {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id(), event.mute)
 
-            eventOnUpdateMute(connectionId, stream, track, muteType)
+            eventOnUpdateMute(event.connectionId, event.stream, event.mediaStreamTrack, event.mute)
         }
 
-        override fun onChangeStability(connectionId: String, stability: Stability) {
-            LOGGER.debug("Client#onChangeStability({}, {})", connectionId, stability)
+        override fun onChangeStability(event: LSChangeStabilityEvent) {
+            LOGGER.debug("Client#onChangeStability({}, {})", event.connectionId, event.stability)
         }
 
         override fun onError(error: SDKErrorEvent) {

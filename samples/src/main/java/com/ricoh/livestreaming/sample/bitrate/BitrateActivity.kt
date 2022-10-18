@@ -38,7 +38,7 @@ class BitrateActivity : BaseActivity() {
                 mViewBinding.controlsLayout.audioListSpinner,
                 mViewBinding.controlsLayout.cameraListSpinner,
                 mViewBinding.controlsLayout.connectButton
-        ))
+        ), "AndroidAPISamplesBitrate")
 
         /**
          * ここから Bitrate サンプル

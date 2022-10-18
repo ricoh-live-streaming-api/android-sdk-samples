@@ -40,7 +40,7 @@ class MuteActivity : BaseActivity() {
                 mViewBinding.controlsLayout.audioListSpinner,
                 mViewBinding.controlsLayout.cameraListSpinner,
                 mViewBinding.controlsLayout.connectButton
-        ))
+        ), "AndroidAPISamplesMute")
 
         /**
          * ここから Mute サンプル

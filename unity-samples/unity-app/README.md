@@ -20,7 +20,7 @@ public static class Secrets
 {
     public static readonly string CLIENT_ID = "xxxxxx";
     public static readonly string CLIENT_SECRET = "xxxxxx";
-    public static readonly string ROOM_ID = "xxxxxx";
+    public static readonly string ROOM_ID = "sample-room";
     public static readonly int VIDEO_BITRATE = 5000;
 }
 ```

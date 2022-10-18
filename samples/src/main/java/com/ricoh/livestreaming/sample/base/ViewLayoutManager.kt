@@ -74,7 +74,20 @@ class ViewLayoutManager(
         layout.addView(renderer)
         mParentLayout.addView(layout)
 
-        mRemoteViews[connectionId] = RemoteView(layout, renderer)
+        mRemoteViews[connectionId] = RemoteView(layout, renderer, videoTrack)
+        updateLayout()
+    }
+
+    @Synchronized
+    fun removeRemoteTrack(connectionId: String) {
+        LOGGER.info("removeRemoteTrack(connectionId={})", connectionId)
+        val view = mRemoteViews[connectionId]
+        if (view != null) {
+            view.videoTrack.removeSink(view.render)
+            view.render.release()
+            mParentLayout.removeView(view.layout)
+        }
+        mRemoteViews.remove(connectionId)
         updateLayout()
     }
 
@@ -147,5 +160,5 @@ class ViewLayoutManager(
         mParentLayout.addView(mLocalView)
     }
 
-    inner class RemoteView(val layout: FrameLayout, val render: SurfaceViewRenderer)
+    inner class RemoteView(val layout: FrameLayout, val render: SurfaceViewRenderer, val videoTrack: VideoTrack)
 }

@@ -31,7 +31,7 @@ public static class JwtAccessToken
             builder.Call<AndroidJavaObject>("claim", "nbf", Utils.GetJavaObject(nbf.ToUnixTimeSeconds()));
             builder.Call<AndroidJavaObject>("claim", "exp", Utils.GetJavaObject(nbf.AddHours(1).ToUnixTimeSeconds()));
             builder.Call<AndroidJavaObject>("claim", "room_id", Utils.GetJavaObject(roomId));
-            builder.Call<AndroidJavaObject>("claim", "connection_id", Utils.GetJavaObject("Untiy" + connectionId));
+            builder.Call<AndroidJavaObject>("claim", "connection_id", Utils.GetJavaObject("AndroidUnityApp" + connectionId));
             builder.Call<AndroidJavaObject>("claim", "room_spec", roomSpec.GetSpecHashMap());
             builder.Call<AndroidJavaObject>("signWith", key, hs256);
             return builder.Call<string>("compact");

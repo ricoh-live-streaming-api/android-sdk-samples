@@ -17,9 +17,9 @@ class RoomSpec(
     fun getSpec(): Map<String, Any> {
         val map = HashMap<String, Any>()
         map["type"] = roomType.typeStr
-//        val mediaControl = HashMap<String, Any>()
-//        mediaControl["bitrate_reservation_mbps"] = 10
-//        map["media_control"] = mediaControl
+        val mediaControl = HashMap<String, Any>()
+        mediaControl["bitrate_reservation_mbps"] = 25
+        map["media_control"] = mediaControl
         return map
     }
 }

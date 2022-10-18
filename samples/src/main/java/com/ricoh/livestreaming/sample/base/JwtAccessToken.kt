@@ -18,12 +18,13 @@ class JwtAccessToken {
          * AccessTokenはアプリバックエンドを用意して生成してください。
          */
         fun createAccessToken(
-                clientSecret: String,
-                roomId: String,
-                roomSpec: RoomSpec): String {
+            clientSecret: String,
+            roomId: String,
+            roomSpec: RoomSpec,
+            prefix: String): String {
             val key = Keys.hmacShaKeyFor(clientSecret.toByteArray(StandardCharsets.UTF_8))
 
-            val connectionId = Base64.encodeToString(Math.random().toString().toByteArray(), Base64.DEFAULT)
+            val connectionId = prefix + Base64.encodeToString(Math.random().toString().toByteArray(), Base64.DEFAULT)
                     .replace("=", "")
                     .replace("+", "")
                     .replace("/", "")

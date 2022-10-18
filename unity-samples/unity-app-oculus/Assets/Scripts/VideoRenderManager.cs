@@ -61,6 +61,11 @@ public class VideoRenderManager
         lock (_lock)
         {
             bool isShowing = IsShowing(connectionId);
+            if (remoteTrackMap.TryGetValue(connectionId, out var videoTrack))
+            {
+                videoTrack.Dispose();
+            }
+
             remoteTrackMap.Remove(connectionId);
             if (isShowing && remoteTrackMap.Count >= 1)
             {
@@ -86,6 +91,11 @@ public class VideoRenderManager
     {
         lock (_lock)
         {
+            foreach (VideoTrackLocal track in remoteTrackMap.Values)
+            {
+                track.Dispose();
+            }
+
             remoteTrackMap.Clear();
         }
     }
@@ -181,7 +191,7 @@ public class VideoRenderManager
     }
 
 
-    private class VideoTrackLocal {
+    private class VideoTrackLocal : IDisposable {
         private readonly VideoRenderManager _manager;
         private readonly AndroidJavaObject _track;
         private readonly string _id;
@@ -208,6 +218,11 @@ public class VideoRenderManager
             _manager.logger.Debug(string.Format("Hide({0})", _id));
             _track.Call("removeSink", _manager.frameUpdateListener);
             IsShowing = false;
+        }
+
+        public void Dispose()
+        {
+            _track.Dispose();
         }
     }
 }
