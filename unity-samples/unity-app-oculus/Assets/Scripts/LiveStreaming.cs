@@ -33,6 +33,8 @@ public class LiveStreaming : MonoBehaviour
     private GameObject RController = null;
     [SerializeField]
     private Material rgbaMaterial = null;
+    [SerializeField]
+    private Dropdown roomTypeDropDown = null;
 
     private SynchronizationContext unityUIContext;
     private AndroidJavaObject unityPlugin;
@@ -133,6 +135,14 @@ public class LiveStreaming : MonoBehaviour
 
         // add HMD unmounted listener
         OVRManager.HMDUnmounted += HMDUnmounted;
+
+        roomTypeDropDown.ClearOptions();
+        foreach (RoomSpec.Type type in Enum.GetValues(typeof(RoomSpec.Type)))
+        {
+            roomTypeDropDown.options.Add(new Dropdown.OptionData(type.ToString()));
+        }
+        roomTypeDropDown.value = 0;
+        roomTypeDropDown.RefreshShownValue();
 
         if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
         {
@@ -381,7 +391,10 @@ public class LiveStreaming : MonoBehaviour
                     client.Call("setEventListener", new ClientListener(this));
                     unityPixelReader = new AndroidJavaObject("com.ricoh.livestreaming.unity.UnityPixelReader", unityPlugin);
 
-                    var roomSpec = new RoomSpec(RoomSpec.Type.SFU);
+                    RoomSpec.Type roomType;
+                    Enum.TryParse(roomTypeDropDown.captionText.text, out roomType);
+                    logger.Info(string.Format("roomType={0}", roomType));
+                    var roomSpec = new RoomSpec(roomType);
                     var accessToken = JwtAccessToken.CreateAccessToken(Secrets.CLIENT_SECRET, roomId, roomSpec);
                     var localLSTracks = CreateLocalLSTracks();
                     using (var optionBuilder = new AndroidJavaObject("com.ricoh.livestreaming.Option$Builder"))
@@ -485,6 +498,7 @@ public class LiveStreaming : MonoBehaviour
                 button.GetComponentInChildren<Text>().text = "Connecting...";
                 button.interactable = false;
                 app.inputFieldRoomID.interactable = false;
+                app.roomTypeDropDown.interactable = false;
             }
              , null);
         }
@@ -563,6 +577,7 @@ public class LiveStreaming : MonoBehaviour
                 button.GetComponentInChildren<Text>().text = "Connect";
                 button.interactable = true;
                 app.inputFieldRoomID.interactable = true;
+                app.roomTypeDropDown.interactable = true;
 
                 app.equirectangularSphere.SetActive(false);
                 app.dualFisheyeSphere.SetActive(false);

@@ -220,6 +220,30 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &190509340 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 8363149137908912769, guid: e1a4caab7cc4a714789390d28479b1ba,
+    type: 3}
+  m_PrefabInstance: {fileID: 1396780899}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d0b652f32a2cc243917e4028fa0f046, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &336254807 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7573309879750702839, guid: 8b8a5745dd195d945a92d1a4407e2fe8,
+    type: 3}
+  m_PrefabInstance: {fileID: 792370750295455008}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0d0b652f32a2cc243917e4028fa0f046, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!114 &448683616 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 792370750458391360, guid: 8b8a5745dd195d945a92d1a4407e2fe8,
@@ -391,8 +415,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   baseContent: {fileID: 562246718}
   remoteViewLayout: {fileID: 1441821283}
-  dropdownCameraMode: {fileID: 1848264986}
-  dropdownCaptureType: {fileID: 1540203196}
   buttonConnection: {fileID: 448683616}
   inputField_RoomID: {fileID: 550237735}
   uiTools:
@@ -871,6 +893,11 @@ PrefabInstance:
       propertyPath: m_Name
       value: Root
       objectReference: {fileID: 0}
+    - target: {fileID: 6980623801832053271, guid: e1a4caab7cc4a714789390d28479b1ba,
+        type: 3}
+      propertyPath: dropdownRoomType
+      value: 
+      objectReference: {fileID: 190509340}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: e1a4caab7cc4a714789390d28479b1ba, type: 3}
 --- !u!224 &1396780900 stripped
@@ -885,18 +912,6 @@ GameObject:
     type: 3}
   m_PrefabInstance: {fileID: 792370750295455008}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1540203196 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 792370749360347036, guid: 8b8a5745dd195d945a92d1a4407e2fe8,
-    type: 3}
-  m_PrefabInstance: {fileID: 792370750295455008}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0d0b652f32a2cc243917e4028fa0f046, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!114 &1751325311 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 6980623801832053271, guid: e1a4caab7cc4a714789390d28479b1ba,
@@ -1008,18 +1023,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &1848264986 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 792370749593582650, guid: 8b8a5745dd195d945a92d1a4407e2fe8,
-    type: 3}
-  m_PrefabInstance: {fileID: 792370750295455008}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0d0b652f32a2cc243917e4028fa0f046, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1001 &792370750295455008
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1337,5 +1340,10 @@ PrefabInstance:
       propertyPath: m_AnchorMin.y
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 9076506685757324897, guid: 8b8a5745dd195d945a92d1a4407e2fe8,
+        type: 3}
+      propertyPath: dropdownRoomType
+      value: 
+      objectReference: {fileID: 336254807}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8b8a5745dd195d945a92d1a4407e2fe8, type: 3}

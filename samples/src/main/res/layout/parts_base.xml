@@ -67,6 +67,24 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@id/audio_list_spinner" />
 
+        <TextView
+            android:id="@+id/room_type_label"
+            android:layout_width="0dp"
+            android:layout_height="24dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="8dp"
+            android:text="@string/room_type"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/audio_list_spinner" />
+
+        <Spinner
+            android:id="@+id/room_type_spinner"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:spinnerMode="dropdown"
+            app:layout_constraintStart_toEndOf="@id/room_type_label"
+            app:layout_constraintTop_toBottomOf="@id/audio_list_spinner" />
+
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -11,6 +11,7 @@ import com.ricoh.livestreaming.SDKError
 import com.ricoh.livestreaming.VideoRequirement
 import com.ricoh.livestreaming.sample.base.BaseActivity
 import com.ricoh.livestreaming.sample.base.BaseViewBinding
+import com.ricoh.livestreaming.sample.base.RoomSpec
 import com.ricoh.livestreaming.sample.databinding.SelectiveBinding
 import org.slf4j.LoggerFactory
 
@@ -36,8 +37,9 @@ class SelectiveActivity : BaseActivity() {
                 mViewBinding.controlsLayout.roomIdText,
                 mViewBinding.controlsLayout.audioListSpinner,
                 mViewBinding.controlsLayout.cameraListSpinner,
-                mViewBinding.controlsLayout.connectButton
-        ), "AndroidAPISamplesSelective")
+                mViewBinding.controlsLayout.connectButton,
+                mViewBinding.controlsLayout.roomTypeSpinner
+        ), "AndroidAPISamplesSelective", arrayOf(RoomSpec.RoomType.SFU, RoomSpec.RoomType.SFU_LARGE))
 
         /**
          * ここから Selective サンプル

@@ -16,6 +16,7 @@
     <string name="first_inbound_video_play">First Inbound Video Play</string>
     <string name="bitrate_label">Bitrate</string>
     <string name="bitrate_unit">kbps</string>
+    <string name="room_type">RoomType:</string>
     <string name="room_id">Room ID:</string>
     <string name="e2e_test_room_sample">sample-room</string>
     <string name="default_connection_meta">{\"conn_meta_key\": \"conn_meta_value\"}</string>

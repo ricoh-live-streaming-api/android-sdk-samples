@@ -8,6 +8,7 @@
     <string name="room_id_has_been_changed">Room ID has been changed. Are you sure to continue without saving?</string>
     <string name="room_type">RoomType</string>
     <string name="sfu">SFU</string>
+    <string name="sfu_large">SFU_Large</string>
     <string name="p2p">P2P</string>
     <string name="p2p_turn">P2P+Turn</string>
     <string name="live_streaming_state_label">LiveStreamingState</string>

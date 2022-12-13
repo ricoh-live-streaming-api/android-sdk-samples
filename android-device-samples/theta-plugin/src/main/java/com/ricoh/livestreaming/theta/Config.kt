@@ -28,10 +28,11 @@ object Config {
 
     private val DEFAULT_LOGGING_SEVERITY = LoggingSeverity.INFO
 
-    enum class RoomType(val position: Int, val id: Int, val type: RoomSpec.RoomType) {
-        SFU(0, R.id.room_type_sfu, RoomSpec.RoomType.SFU),
-        P2P(1, R.id.room_type_p2p, RoomSpec.RoomType.P2P),
-        P2P_TURN(2, R.id.room_type_p2p_turn, RoomSpec.RoomType.P2P_TURN),
+    enum class RoomType(val position: Int, val type: RoomSpec.RoomType) {
+        SFU(0, RoomSpec.RoomType.SFU),
+        SFU_LARGE(1, RoomSpec.RoomType.SFU_LARGE),
+        P2P(2, RoomSpec.RoomType.P2P),
+        P2P_TURN(3, RoomSpec.RoomType.P2P_TURN),
     }
 
     private val DEFAULT_ROOM_TYPE = RoomType.SFU
@@ -39,7 +40,8 @@ object Config {
     /** Configuration values    */
     private var roomId = ""
     private var loggingSeverity = "INFO"
-    private var roomType = RoomType.SFU.position
+    private var roomType = RoomSpec.RoomType.SFU
+    private var roomTypePosition = RoomType.SFU.position
 
     fun load(context: Context) {
         val preferences = context.getSharedPreferences(CONFIG_FILE, Context.MODE_PRIVATE)
@@ -47,7 +49,7 @@ object Config {
         if (this.roomId.isEmpty()) this.setRoomId(context, BuildConfig.ROOM_ID)
         this.loggingSeverity = preferences.getString(KEY_LOGGING_SEVERITY, "").toString()
         if (this.loggingSeverity.isEmpty()) this.setLoggingSeverity(context, "INFO")
-        this.roomType = preferences.getInt(KEY_ROOM_TYPE, DEFAULT_ROOM_TYPE.position)
+        this.roomTypePosition = preferences.getInt(KEY_ROOM_TYPE, DEFAULT_ROOM_TYPE.position)
     }
 
     fun getRoomId(): String {
@@ -86,32 +88,18 @@ object Config {
         this.saveString(context, KEY_LOGGING_SEVERITY, this.loggingSeverity)
     }
 
-    fun getSelectedRoomTypeID(): Int {
-        return when (this.roomType) {
-            RoomType.SFU.position -> RoomType.SFU.id
-            RoomType.P2P.position -> RoomType.P2P.id
-            RoomType.P2P_TURN.position -> RoomType.P2P_TURN.id
-            else -> this.DEFAULT_ROOM_TYPE.id
-        }
+    fun getSelectedRoomType(): Int {
+        return this.roomTypePosition
     }
 
     fun getRoomType(): RoomSpec.RoomType {
-        return when (this.roomType) {
-            RoomType.SFU.position -> RoomType.SFU.type
-            RoomType.P2P.position -> RoomType.P2P.type
-            RoomType.P2P_TURN.position -> RoomType.P2P_TURN.type
-            else -> this.DEFAULT_ROOM_TYPE.type
-        }
+        return this.roomType
     }
 
-    fun setRoomType(context: Context, id: Int) {
-        this.roomType = when (id) {
-            RoomType.SFU.id -> RoomType.SFU.position
-            RoomType.P2P.id -> RoomType.P2P.position
-            RoomType.P2P_TURN.id -> RoomType.P2P_TURN.position
-            else -> RoomType.SFU.id
-        }
-        this.saveInt(context, KEY_ROOM_TYPE, roomType)
+    fun setRoomType(context: Context, position: Int, type: RoomSpec.RoomType) {
+        this.roomTypePosition = position
+        this.roomType = type
+        this.saveInt(context, KEY_ROOM_TYPE, position)
     }
 
     private fun saveString(context: Context, key: String, value: String) {

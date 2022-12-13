@@ -16,6 +16,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import com.ricoh.livestreaming.*
 import com.ricoh.livestreaming.theta.databinding.ActivityMainBinding
 import com.ricoh.livestreaming.theta.webapi.ThetaWebApiClient
@@ -33,8 +34,6 @@ import org.apache.commons.collections4.IteratorUtils
 import org.slf4j.LoggerFactory
 import org.webrtc.EglBase
 import org.webrtc.EglBase14
-import org.webrtc.MediaStream
-import org.webrtc.MediaStreamTrack
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
@@ -172,9 +171,13 @@ class MainActivity : PluginActivity() {
         }
 
         // Room Type
-        mActivityMainBinding.roomTypeRadio.check(Config.getSelectedRoomTypeID())
-        mActivityMainBinding.roomTypeRadio.setOnCheckedChangeListener { _, checkedId ->
-            Config.setRoomType(applicationContext, checkedId)
+        mActivityMainBinding.roomType.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, RoomSpec.RoomType.values())
+        mActivityMainBinding.roomType.setSelection(Config.getSelectedRoomType())
+        mActivityMainBinding.roomType.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                Config.setRoomType(this@MainActivity.applicationContext, position, mActivityMainBinding.roomType.selectedItem as RoomSpec.RoomType)
+            }
         }
 
         // Mute Type

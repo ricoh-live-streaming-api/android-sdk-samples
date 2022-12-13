@@ -37,7 +37,8 @@ class BitrateActivity : BaseActivity() {
                 mViewBinding.controlsLayout.roomIdText,
                 mViewBinding.controlsLayout.audioListSpinner,
                 mViewBinding.controlsLayout.cameraListSpinner,
-                mViewBinding.controlsLayout.connectButton
+                mViewBinding.controlsLayout.connectButton,
+                mViewBinding.controlsLayout.roomTypeSpinner
         ), "AndroidAPISamplesBitrate")
 
         /**

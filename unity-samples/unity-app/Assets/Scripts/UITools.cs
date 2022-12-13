@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using UnityEngine;
@@ -33,6 +34,9 @@ public class UITools : MonoBehaviour
     [SerializeField]
     private YUVMaterialTexture localYUVTexture;
 
+    [SerializeField]
+    private Dropdown dropdownRoomType = null;
+
     /// <summary>
     /// 初期化処理
     /// </summary>
@@ -52,6 +56,7 @@ public class UITools : MonoBehaviour
 
         dropdownCameraMode.ClearOptions();
         dropdownCaptureType.ClearOptions();
+        dropdownRoomType.ClearOptions();
 
         for (int i = 0; i < cameraListAdapter.getCameraNum(); i++)
         {
@@ -64,8 +69,15 @@ public class UITools : MonoBehaviour
             dropdownCaptureType.options.Add(new Dropdown.OptionData(captureType[i]));
         }
 
+        // RoomTypeの登録
+        foreach (RoomSpec.Type type in Enum.GetValues(typeof(RoomSpec.Type)))
+        {
+            dropdownRoomType.options.Add(new Dropdown.OptionData(type.ToString()));
+        }
+
         dropdownCameraMode.value = 0;
         dropdownCaptureType.value = 0;
+        dropdownRoomType.value = 0;
     }
 
     public GameObject GetRemoteViewLayout()
@@ -101,5 +113,10 @@ public class UITools : MonoBehaviour
     public Button GetButton_Connection()
     {
         return buttonConnection;
+    }
+
+    public Dropdown GetDropdown_RoomType()
+    {
+        return dropdownRoomType;
     }
 }

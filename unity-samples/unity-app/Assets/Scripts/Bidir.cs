@@ -226,6 +226,9 @@ public class Bidir : MonoBehaviour
         //dropdownCaptureType.gameObject.SetActive(active);
         uiTools[current].GetDropdown_CaptureType().gameObject.SetActive(active);
 
+        // RoomTypeのドロップダウンの表示制御
+        uiTools[current].GetDropdown_RoomType().gameObject.SetActive(active);
+
         // 接続ボタンの表示制御
         buttonConnection.gameObject.SetActive(active);
 
@@ -255,6 +258,10 @@ public class Bidir : MonoBehaviour
         // 解像度のリスト位置
         uiTools[current].GetDropdown_CaptureType().value = uiTools[prev].GetDropdown_CaptureType().value;
         uiTools[current].GetDropdown_CaptureType().gameObject.SetActive(uiTools[prev].GetDropdown_CaptureType().gameObject.activeSelf);
+
+        // RoomTypeのDropdown
+        uiTools[current].GetDropdown_RoomType().value = uiTools[prev].GetDropdown_RoomType().value;
+        uiTools[current].GetDropdown_RoomType().gameObject.SetActive(uiTools[prev].GetDropdown_RoomType().gameObject.activeSelf);
 
         // ボタン情報のコピー
         uiTools[current].GetButton_Connection().GetComponentInChildren<Text>().text =
@@ -527,7 +534,10 @@ public class Bidir : MonoBehaviour
                     capturer = new AndroidJavaObject("com.ricoh.livestreaming.webrtc.Camera2VideoCapturer",
                         context, cameraIndex.ToString(), capWidth, capHeight, 30);
 
-                    var roomSpec = new RoomSpec(RoomSpec.Type.SFU);
+                    RoomSpec.Type roomType;
+                    Enum.TryParse(uiTools[current].GetDropdown_RoomType().captionText.text, out roomType);
+                    logger.Info(string.Format("roomType={0}", roomType));
+                    var roomSpec = new RoomSpec(roomType);
                     var accessToken = JwtAccessToken.CreateAccessToken(Secrets.CLIENT_SECRET, inputField_RoomID.text, roomSpec);
                     var localLSTracks = CreateLocalMediaStreams();
                     using (var optionBuilder = new AndroidJavaObject("com.ricoh.livestreaming.Option$Builder"))

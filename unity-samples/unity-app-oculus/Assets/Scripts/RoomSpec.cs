@@ -7,6 +7,7 @@ public class RoomSpec
     public enum Type
     {
         SFU,
+        SFU_LARGE,
         P2P,
         P2P_TURN
     }

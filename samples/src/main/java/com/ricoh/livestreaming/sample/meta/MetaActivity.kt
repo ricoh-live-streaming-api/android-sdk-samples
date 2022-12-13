@@ -10,8 +10,10 @@ import android.os.Bundle
 import android.widget.EditText
 import com.google.gson.Gson
 import com.ricoh.livestreaming.SDKError
+import com.ricoh.livestreaming.sample.R
 import com.ricoh.livestreaming.sample.base.BaseActivity
 import com.ricoh.livestreaming.sample.base.BaseViewBinding
+import com.ricoh.livestreaming.sample.base.RoomSpec
 import com.ricoh.livestreaming.sample.databinding.MetaBinding
 import org.slf4j.LoggerFactory
 import org.webrtc.AudioTrack
@@ -39,7 +41,8 @@ class MetaActivity : BaseActivity() {
                 mViewBinding.controlsLayout.roomIdText,
                 mViewBinding.controlsLayout.audioListSpinner,
                 mViewBinding.controlsLayout.cameraListSpinner,
-                mViewBinding.controlsLayout.connectButton
+                mViewBinding.controlsLayout.connectButton,
+                mViewBinding.controlsLayout.roomTypeSpinner
         ), "AndroidAPISamplesMeta")
 
         /**
@@ -107,6 +110,25 @@ class MetaActivity : BaseActivity() {
             LOGGER.info("({}: {})", key, value)
             val targetTextView = if (track is AudioTrack) mViewBinding.updateAudioTrackMetaText else mViewBinding.updateVideoTrackMetaText
             runOnUiThread { targetTextView.text = "{$key:$value}" }
+        }
+    }
+
+    override fun eventOnConnecting() {
+        super.eventOnConnecting()
+        runOnUiThread {
+            if (mViewBinding.controlsLayout.roomTypeSpinner.selectedItem == RoomSpec.RoomType.P2P ||
+                    mViewBinding.controlsLayout.roomTypeSpinner.selectedItem == RoomSpec.RoomType.P2P_TURN) {
+                mViewBinding.updateAudioTrackMetaButton.isEnabled = false
+                mViewBinding.updateVideoTrackMetaButton.isEnabled = false
+            }
+        }
+    }
+
+    override fun eventOnClosed() {
+        super.eventOnClosed()
+        runOnUiThread {
+            mViewBinding.updateAudioTrackMetaButton.isEnabled = true
+            mViewBinding.updateVideoTrackMetaButton.isEnabled = true
         }
     }
 }

@@ -6,6 +6,7 @@ package com.ricoh.livestreaming.sample.base
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.ricoh.livestreaming.*
@@ -25,7 +26,8 @@ class BaseViewBinding(
         val roomId: EditText,
         val audioListSpinner: Spinner,
         val cameraListSpinner: Spinner,
-        val connectButton: Button
+        val connectButton: Button,
+        val roomTypeSpinner: Spinner
 )
 
 abstract class BaseActivity : AppCompatActivity() {
@@ -73,7 +75,7 @@ abstract class BaseActivity : AppCompatActivity() {
         }
     }
 
-    fun setBaseView(baseViewBinding: BaseViewBinding, activity: String) {
+    fun setBaseView(baseViewBinding: BaseViewBinding, activity: String, roomTypeArray: Array<RoomSpec.RoomType> = RoomSpec.RoomType.values()) {
         mBaseViewBinding = baseViewBinding
 
         mEgl = EglBase.create()
@@ -104,6 +106,15 @@ abstract class BaseActivity : AppCompatActivity() {
                 connect(mConnectOption, activity)
             } else {
                 disconnect()
+            }
+        }
+
+        // Room Type
+        baseViewBinding.roomTypeSpinner.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, roomTypeArray)
+        mBaseViewBinding.roomTypeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                Config.roomType = mBaseViewBinding.roomTypeSpinner.selectedItem as RoomSpec.RoomType
             }
         }
     }
@@ -154,9 +165,9 @@ abstract class BaseActivity : AppCompatActivity() {
 
     /** connect API を用いてサーバーに接続します */
     private fun connect(connectOption: ConnectOption, prefix: String) = executor.safeSubmit {
-        LOGGER.info("Try to connect. RoomType={}", Config.roomType.value.typeStr)
-
-        val roomSpec = RoomSpec(Config.roomType.value)
+        LOGGER.info("Try to connect. RoomType={}", Config.roomType.typeStr)
+        
+        val roomSpec = RoomSpec(Config.roomType)
         val accessToken = JwtAccessToken.createAccessToken(BuildConfig.CLIENT_SECRET, mBaseViewBinding.roomId.text.toString(), roomSpec, prefix)
 
         createVideoCapturer(mBaseViewBinding.cameraListSpinner.selectedItem as CameraInfo)
@@ -219,6 +230,7 @@ abstract class BaseActivity : AppCompatActivity() {
             mBaseViewBinding.connectButton.isEnabled = false
             mBaseViewBinding.audioListSpinner.isEnabled = false
             mBaseViewBinding.cameraListSpinner.isEnabled = false
+            mBaseViewBinding.roomTypeSpinner.isEnabled = false
         }
     }
     open fun eventOnOpen() {
@@ -239,6 +251,7 @@ abstract class BaseActivity : AppCompatActivity() {
             mBaseViewBinding.connectButton.isEnabled = true
             mBaseViewBinding.audioListSpinner.isEnabled = true
             mBaseViewBinding.cameraListSpinner.isEnabled = true
+            mBaseViewBinding.roomTypeSpinner.isEnabled = true
         }
     }
     open fun eventOnAddRemoteConnection(connectionId: String, metadata: Map<String, Any>) { /* Nothing to do. */ }

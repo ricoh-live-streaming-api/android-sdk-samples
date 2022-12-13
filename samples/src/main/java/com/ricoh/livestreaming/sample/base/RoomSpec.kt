@@ -10,6 +10,7 @@ class RoomSpec(
 
     enum class RoomType(val typeStr: String) {
         SFU("sfu"),
+        SFU_LARGE("sfu_large"),
         P2P("p2p"),
         P2P_TURN("p2p_turn")
     }
