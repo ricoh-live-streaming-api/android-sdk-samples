@@ -128,6 +128,66 @@
             android:text="@string/initial_audio_mute"
             android:id="@+id/initial_audio_mute" />
 
+        <TextView
+            android:id="@+id/proxy"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/proxy" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <CheckBox
+                android:id="@+id/use_proxy"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:text="@string/use_proxy" />
+
+            <EditText
+                android:id="@+id/proxy_address"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:hint="@string/address_placeholder"
+                tools:ignore="LabelFor" />
+
+            <EditText
+                android:id="@+id/proxy_port"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ems="10"
+                android:hint="@string/port_placeholder"
+                tools:ignore="LabelFor" />
+
+        </LinearLayout>
+
+        <CheckBox
+            android:id="@+id/proxy_authentication"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="10dp"
+            android:layout_marginTop="2dp"
+            android:text="@string/proxy_authentication" />
+
+        <EditText
+            android:id="@+id/proxy_user"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/user_placeholder"
+            tools:ignore="LabelFor" />
+
+        <EditText
+            android:id="@+id/proxy_password"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="textPassword"
+            android:hint="@string/password_placeholder"
+            tools:ignore="LabelFor" />
+
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

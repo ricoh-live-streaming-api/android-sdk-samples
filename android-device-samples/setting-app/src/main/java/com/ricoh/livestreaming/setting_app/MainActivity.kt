@@ -17,6 +17,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.preference.PreferenceManager
 import com.ricoh.livestreaming.setting_app.databinding.ActivityMainBinding
 import org.json.JSONObject
+import java.net.URLEncoder
 
 class MainActivity : AppCompatActivity(), TextWatcher {
     companion object {
@@ -29,12 +30,21 @@ class MainActivity : AppCompatActivity(), TextWatcher {
         const val RESOLUTION_2K = 1
         const val BITRATE_KEY = "BITRATE"
         const val INITIAL_AUDIO_MUTE_KEY = "INITIAL_AUDIO_MUTE"
+        const val PROXY = "PROXY"
+        const val USE_PROXY_KEY = "USE_PROXY"
+        const val ADDRESS = "ADDRESS"
+        const val PORT = "PORT"
+        const val AUTHENTICATION_KEY = "AUTHENTICATION"
+        const val USER = "USER"
+        const val PASSWORD = "PASSWORD"
 
         const val INTENT_PARAM = "param"
 
         const val BITRATE_DEFAULT_VALUE = "7000"    // 7Mbps
         const val RESOLUTION_DEFAULT_VALUE = RESOLUTION_4K
         const val INITIAL_AUDIO_MUTE_DEFAULT_VALUE = false
+        const val USE_PROXY_DEFAULT_VALUE = false
+        const val AUTHENTICATION_DEFAULT_VALUE = false
     }
     
     /** View Binding */
@@ -50,10 +60,20 @@ class MainActivity : AppCompatActivity(), TextWatcher {
         mActivityMainBinding.passwordEdit.text = Editable.Factory.getInstance().newEditable(getSavedStringData(PASSWORD_KEY))
         mActivityMainBinding.roomIdEdit.text = Editable.Factory.getInstance().newEditable(getSavedStringData(ROOM_ID_KEY))
         mActivityMainBinding.bitrateEdit.text = Editable.Factory.getInstance().newEditable(getSavedStringData(BITRATE_KEY, BITRATE_DEFAULT_VALUE))
+        mActivityMainBinding.useProxy.isChecked = getSavedBooleanData(USE_PROXY_KEY, USE_PROXY_DEFAULT_VALUE)
+        mActivityMainBinding.proxyAddress.text = Editable.Factory.getInstance().newEditable(getSavedStringData(ADDRESS))
+        mActivityMainBinding.proxyPort.text = Editable.Factory.getInstance().newEditable(getSavedStringData(PORT))
+        mActivityMainBinding.proxyAuthentication.isChecked = getSavedBooleanData(AUTHENTICATION_KEY, AUTHENTICATION_DEFAULT_VALUE)
+        mActivityMainBinding.proxyUser.text = Editable.Factory.getInstance().newEditable(getSavedStringData(USER))
+        mActivityMainBinding.proxyPassword.text = Editable.Factory.getInstance().newEditable(getSavedStringData(PASSWORD))
         mActivityMainBinding.ssidEdit.addTextChangedListener(this)
         mActivityMainBinding.passwordEdit.addTextChangedListener(this)
         mActivityMainBinding.roomIdEdit.addTextChangedListener(this)
         mActivityMainBinding.bitrateEdit.addTextChangedListener(this)
+        mActivityMainBinding.proxyAddress.addTextChangedListener(this)
+        mActivityMainBinding.proxyPort.addTextChangedListener(this)
+        mActivityMainBinding.proxyUser.addTextChangedListener(this)
+        mActivityMainBinding.proxyPassword.addTextChangedListener(this)
 
         mActivityMainBinding.securitySpinner.setSelection(getSavedIntData(SECURITY_KEY))
         mActivityMainBinding.securitySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
@@ -75,6 +95,54 @@ class MainActivity : AppCompatActivity(), TextWatcher {
             }
         }
 
+        if (mActivityMainBinding.useProxy.isChecked) {
+            mActivityMainBinding.proxyAddress.isEnabled = true
+            mActivityMainBinding.proxyPort.isEnabled = true
+            mActivityMainBinding.proxyAuthentication.isEnabled = true
+            if (mActivityMainBinding.proxyAuthentication.isChecked) {
+                mActivityMainBinding.proxyUser.isEnabled = true
+                mActivityMainBinding.proxyPassword.isEnabled = true
+            } else {
+                mActivityMainBinding.proxyUser.isEnabled = false
+                mActivityMainBinding.proxyPassword.isEnabled = false
+            }
+        } else {
+            mActivityMainBinding.proxyAddress.isEnabled = false
+            mActivityMainBinding.proxyPort.isEnabled = false
+            mActivityMainBinding.proxyAuthentication.isEnabled = false
+            mActivityMainBinding.proxyUser.isEnabled = false
+            mActivityMainBinding.proxyPassword.isEnabled = false
+        }
+        mActivityMainBinding.useProxy.setOnClickListener() {
+            if (mActivityMainBinding.useProxy.isChecked) {
+                mActivityMainBinding.proxyAddress.isEnabled = true
+                mActivityMainBinding.proxyPort.isEnabled = true
+                mActivityMainBinding.proxyAuthentication.isEnabled = true
+                if (mActivityMainBinding.proxyAuthentication.isChecked) {
+                    mActivityMainBinding.proxyUser.isEnabled = true
+                    mActivityMainBinding.proxyPassword.isEnabled = true
+                } else {
+                    mActivityMainBinding.proxyUser.isEnabled = false
+                    mActivityMainBinding.proxyPassword.isEnabled = false
+                }
+            } else {
+                mActivityMainBinding.proxyAddress.isEnabled = false
+                mActivityMainBinding.proxyPort.isEnabled = false
+                mActivityMainBinding.proxyAuthentication.isEnabled = false
+                mActivityMainBinding.proxyUser.isEnabled = false
+                mActivityMainBinding.proxyPassword.isEnabled = false
+            }
+        }
+        mActivityMainBinding.proxyAuthentication.setOnClickListener() {
+            if (mActivityMainBinding.proxyAuthentication.isChecked) {
+                mActivityMainBinding.proxyUser.isEnabled = true
+                mActivityMainBinding.proxyPassword.isEnabled = true
+            } else {
+                mActivityMainBinding.proxyUser.isEnabled = false
+                mActivityMainBinding.proxyPassword.isEnabled = false
+            }
+        }
+
         mActivityMainBinding.createButton.setOnClickListener {
             saveData(SSID_KEY, mActivityMainBinding.ssidEdit.text.toString())
             saveData(PASSWORD_KEY, mActivityMainBinding.passwordEdit.text.toString())
@@ -88,6 +156,12 @@ class MainActivity : AppCompatActivity(), TextWatcher {
             saveData(SEND_RESOLUTION_KEY, resolution)
             saveData(BITRATE_KEY, mActivityMainBinding.bitrateEdit.text.toString())
             saveData(INITIAL_AUDIO_MUTE_KEY, mActivityMainBinding.initialAudioMute.isChecked)
+            saveData(USE_PROXY_KEY, mActivityMainBinding.useProxy.isChecked)
+            saveData(ADDRESS, mActivityMainBinding.proxyAddress.text.toString())
+            saveData(PORT, mActivityMainBinding.proxyPort.text.toString())
+            saveData(AUTHENTICATION_KEY, mActivityMainBinding.proxyAuthentication.isChecked)
+            saveData(USER, mActivityMainBinding.proxyUser.text.toString())
+            saveData(PASSWORD, mActivityMainBinding.proxyPassword.text.toString())
 
             val json = JSONObject().apply {
                 put(SSID_KEY, mActivityMainBinding.ssidEdit.text.toString())
@@ -97,6 +171,9 @@ class MainActivity : AppCompatActivity(), TextWatcher {
                 put(SEND_RESOLUTION_KEY, resolution)
                 put(BITRATE_KEY, Integer.parseInt(mActivityMainBinding.bitrateEdit.text.toString()))
                 put(INITIAL_AUDIO_MUTE_KEY, mActivityMainBinding.initialAudioMute.isChecked)
+                if (getProxyUrl() != null) {
+                    put(PROXY, getProxyUrl())
+                }
             }
             val intent = Intent(applicationContext, QRCodeActivity::class.java)
             intent.putExtra(INTENT_PARAM, json.toString())
@@ -192,5 +269,25 @@ class MainActivity : AppCompatActivity(), TextWatcher {
         val edit = PreferenceManager.getDefaultSharedPreferences(applicationContext).edit()
         edit.putBoolean(key, data)
         edit.apply()
+    }
+
+    private fun getProxyUrl(): String? {
+        val useProxy: Boolean = mActivityMainBinding.useProxy.isChecked
+        val address: String = mActivityMainBinding.proxyAddress.text.toString()
+        val port: String = mActivityMainBinding.proxyPort.text.toString()
+        val authentication: Boolean = mActivityMainBinding.proxyAuthentication.isChecked
+        val user: String = mActivityMainBinding.proxyUser.text.toString()
+        val password: String = mActivityMainBinding.proxyPassword.text.toString()
+        return if (useProxy) {
+            if (authentication) {
+                val encodedUser: String = URLEncoder.encode(user, "UTF-8")
+                val encodedPassword: String = URLEncoder.encode(password, "UTF-8")
+                "http://$encodedUser:$encodedPassword@$address:$port/"
+            } else {
+                "http://$address:$port/"
+            }
+        } else {
+            null
+        }
     }
 }

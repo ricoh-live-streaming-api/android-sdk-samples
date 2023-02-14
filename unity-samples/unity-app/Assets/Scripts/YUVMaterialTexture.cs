@@ -141,7 +141,7 @@ public class YUVMaterialTexture
             handle = GCHandle.Alloc(dstBuffer, GCHandleType.Pinned);
             var ptr = handle.AddrOfPinnedObject();
 
-            unityPlugin.Call(methodName, yuvPlaneData, ptr.ToInt32(), offset, size);
+            unityPlugin.Call(methodName, yuvPlaneData, ptr.ToInt64(), offset, size);
             texture.LoadRawTextureData(dstBuffer);
             texture.Apply();
         }

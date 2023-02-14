@@ -92,12 +92,11 @@
 
     <!-- Room Type -->
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/room_type_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/layout_log_level">
+        android:id="@+id/room_type_layout"
+        app:layout_constraintTop_toBottomOf="@id/layout_log_level">
 
         <TextView
             android:id="@+id/text_room_type"

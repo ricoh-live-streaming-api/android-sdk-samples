@@ -20,6 +20,6 @@ fun Context.createLogFile(): File {
     val timestamp = df.format(Date())
     return getExternalFilesDir(null)!!
             .resolve("logs")
-            .apply { mkdir() }
-            .resolve("$timestamp.log")
+            .resolve("stats")
+            .resolve("stats_$timestamp.log")
 }

@@ -36,6 +36,7 @@ class SettingActivity : AppCompatActivity() {
         private const val SEND_RESOLUTION_KEY = "RESOLUTION_KEY"
         private const val BITRATE_KEY = "BITRATE"
         private const val INITIAL_AUDIO_MUTE_KEY = "INITIAL_AUDIO_MUTE"
+        private const val PROXY = "PROXY"
 
         private const val OK_DIALOG = 100
         private const val ERROR_DIALOG = 101
@@ -104,6 +105,9 @@ class SettingActivity : AppCompatActivity() {
                 Preference.saveRoomId(applicationContext, json.getString(ROOM_ID_KEY))
                 Preference.saveSendResolution(applicationContext, json.getInt(SEND_RESOLUTION_KEY))
                 Preference.saveBitrate(applicationContext, json.getInt(BITRATE_KEY))
+                if (json.has(PROXY)) {
+                    Preference.saveProxy(applicationContext, json.getString(PROXY))
+                }
                 if (json.has(INITIAL_AUDIO_MUTE_KEY)) {
                     Preference.saveInitialAudioMute(applicationContext, json.getBoolean(INITIAL_AUDIO_MUTE_KEY))
                 }

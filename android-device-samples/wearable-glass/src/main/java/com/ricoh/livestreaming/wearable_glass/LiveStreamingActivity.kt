@@ -4,6 +4,7 @@
 
 package com.ricoh.livestreaming.wearable_glass
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.DialogInterface
 import android.media.AudioManager
@@ -22,6 +23,8 @@ import com.ricoh.livestreaming.webrtc.Camera2VideoCapturer
 import com.ricoh.livestreaming.webrtc.CodecUtils
 import org.slf4j.LoggerFactory
 import org.webrtc.*
+import java.io.File
+import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
@@ -120,7 +123,25 @@ class LiveStreamingActivity : AppCompatActivity() {
         mVideoRenderManager!!.clear()
     }
 
+    /**
+     * libwebrtcログはConnectするごとにログを削除して再作成する仕組みのため
+     * 過去実行時のログを残すには退避処理が必要になります。
+     */
+    @SuppressLint("SimpleDateFormat")
+    private fun saveLibWebrtcLog() {
+        getExternalFilesDir(null)!!.resolve("logs").resolve("libwebrtc").let { libWebrtcLogDir ->
+            libWebrtcLogDir.listFiles()?.forEach {
+                // libwebrtcログファイル名は"webrtc_log_{連番}"として作成されるため、
+                // 過去実行時ログを見つけるために"webrtc"で始まるログを検索します。
+                if (it.isFile && it.name.startsWith("webrtc")) {
+                    it.renameTo(File("${libWebrtcLogDir.absolutePath}/${SimpleDateFormat("yyyyMMdd'T'HHmmss").format(it.lastModified())}_${it.name}"))
+                }
+            }
+        }
+    }
+
     private fun connect() = executor.safeSubmit {
+        saveLibWebrtcLog()
         runOnUiThread {
             mActivityLiveStreamingBinding.progressMessage.text = getString(R.string.connecting)
             mActivityLiveStreamingBinding.progressLayout.visibility = VISIBLE
@@ -135,6 +156,7 @@ class LiveStreamingActivity : AppCompatActivity() {
             val roomSpec = RoomSpec(RoomSpec.RoomType.SFU)
             val accessToken = JwtAccessToken.createAccessToken(
                     BuildConfig.CLIENT_SECRET, roomId, roomSpec)
+            val proxy = Preference.getProxy(applicationContext)
 
             val eglContext = mEgl!!.eglBaseContext as EglBase14.Context
             mClient = Client(
@@ -183,7 +205,27 @@ class LiveStreamingActivity : AppCompatActivity() {
                                     .sendingPriority(SendingVideoOption.SendingPriority.HIGH)
                                     .maxBitrateKbps(videoBitrate)
                                     .build()))
+                    .apply {
+                        if (isProxy(proxy)) {
+                            this.proxy(proxy)
+                        }
+                    }
                     .build()
+
+            val libWebrtcLogFilePath = getExternalFilesDir(null)!!
+                    .resolve("logs")
+                    .resolve("libwebrtc")
+                    .absolutePath
+            val libWebrtcLogOptions = LibWebrtcLogOption.Builder(libWebrtcLogFilePath)
+                    .maxTotalFileSize(4)
+                    .logLevel(LibWebrtcLogLevel.INFO)
+                    .build()
+            try {
+                mClient!!.setLibWebrtcLogOption(libWebrtcLogOptions)
+            } catch (e: SDKError) {
+                LOGGER.error(e.toReportString())
+                return@safeSubmit
+            }
 
             mClient!!.connect(
                     BuildConfig.CLIENT_ID,
@@ -455,5 +497,9 @@ class LiveStreamingActivity : AppCompatActivity() {
                 LOGGER.error("Uncaught Exception in Executor", e)
             }
         }
+    }
+
+    private fun isProxy(proxy: String?): Boolean {
+        return proxy != null
     }
 }

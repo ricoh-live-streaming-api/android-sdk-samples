@@ -15,6 +15,7 @@ class Preference {
         private const val BITRATE_DEFAULT_VALUE = 7_000 // 7Mbps
         private const val INITIAL_AUDIO_MUTE_KEY = "audio_mute"
         private const val INITIAL_AUDIO_MUTE_DEFAULT_VALUE = false
+        private const val PROXY = "proxy"
 
         fun saveRoomId(context: Context, roomId: String) {
             val preference = PreferenceManager.getDefaultSharedPreferences(context)
@@ -62,6 +63,18 @@ class Preference {
         fun isInitialAudioMute(context: Context): Boolean {
             val preference = PreferenceManager.getDefaultSharedPreferences(context)
             return preference.getBoolean(INITIAL_AUDIO_MUTE_KEY, INITIAL_AUDIO_MUTE_DEFAULT_VALUE)
+        }
+
+        fun saveProxy(context: Context, proxy: String) {
+            val preference = PreferenceManager.getDefaultSharedPreferences(context)
+            val editor = preference.edit()
+            editor.putString(PROXY, proxy)
+            editor.apply()
+        }
+
+        fun getProxy(context: Context): String? {
+            val preference = PreferenceManager.getDefaultSharedPreferences(context)
+            return preference.getString(PROXY, null)
         }
     }
 }

@@ -127,11 +127,7 @@ abstract class BaseActivity : AppCompatActivity() {
                 eglContext,
                 ThetaVideoEncoderFactory(
                         eglContext,
-                        listOf(
-                                CodecUtils.VIDEO_CODEC_INFO_VP8,
-                                CodecUtils.VIDEO_CODEC_INFO_H264,
-                                CodecUtils.VIDEO_CODEC_INFO_H264_HIGH_PROFILE
-                        )
+                        CodecUtils.getSupportedEncoderCodecInfo(applicationContext)
                 )
         ).apply {
             /** この関数でイベントリスナーを設定します */

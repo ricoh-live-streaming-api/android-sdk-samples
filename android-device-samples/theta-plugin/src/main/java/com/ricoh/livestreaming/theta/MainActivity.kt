@@ -35,6 +35,7 @@ import org.slf4j.LoggerFactory
 import org.webrtc.EglBase
 import org.webrtc.EglBase14
 import java.io.File
+import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Executors
@@ -140,9 +141,6 @@ class MainActivity : PluginActivity() {
                 setBitrateToTextView(bitrateKbps)
             }
         }
-
-        // Load configurations.
-        Config.load(this.applicationContext)
 
         // Save button
         mActivityMainBinding.saveConfig.setOnClickListener {
@@ -277,6 +275,23 @@ class MainActivity : PluginActivity() {
         }
     }
 
+    /**
+     * libwebrtcログはConnectするごとにログを削除して再作成する仕組みのため
+     * 過去実行時のログを残すには退避処理が必要になります。
+     */
+    @SuppressLint("SimpleDateFormat")
+    private fun saveLibWebrtcLog() {
+        getExternalFilesDir(null)!!.resolve("logs").resolve("libwebrtc").let { libWebrtcLogDir ->
+            libWebrtcLogDir.listFiles()?.forEach {
+                // libwebrtcログファイル名は"webrtc_log_{連番}"として作成されるため、
+                // 過去実行時ログを見つけるために"webrtc"で始まるログを検索します。
+                if (it.isFile && it.name.startsWith("webrtc")) {
+                    it.renameTo(File("${libWebrtcLogDir.absolutePath}/${SimpleDateFormat("yyyyMMdd'T'HHmmss").format(it.lastModified())}_${it.name}"))
+                }
+            }
+        }
+    }
+
     override fun onResume() {
         super.onResume()
 
@@ -340,7 +355,7 @@ class MainActivity : PluginActivity() {
                             LOGGER.info("try to take a picture.")
                             capturer?.takePicture { data ->
                                 notificationAudioShutter()
-                                val path = createFilePath() + ".jpg"
+                                val path = createImgFilePath()
                                 LOGGER.info("Save Still Image to {}", path)
                                 File(path).writeBytes(data)
                             }
@@ -360,9 +375,15 @@ class MainActivity : PluginActivity() {
                             LOGGER.info("Try to connect. RoomType={}", Config.getRoomType())
                             disableBFormat()
 
+                            // 過去実行時のlibwebrtcログがある場合は退避します。
+                            saveLibWebrtcLog()
+
                             if (isSFU() && !isThetaX()) {
                                 mAttitude!!.start()
                             }
+
+                            // 過去実行時のlibwebrtcログがある場合は退避します。
+                            saveLibWebrtcLog()
 
                             val roomSpec = RoomSpec(Config.getRoomType())
                             val rand = Random()
@@ -373,6 +394,7 @@ class MainActivity : PluginActivity() {
                             val accessToken = JwtAccessToken.createAccessToken(
                                     BuildConfig.CLIENT_SECRET, mActivityMainBinding.roomId.text.toString(), roomSpec, date!!, connectionId)
                             val eglContext = mEgl!!.eglBaseContext as EglBase14.Context
+                            val proxy: String = BuildConfig.PROXY
                             mClient = Client(applicationContext, eglContext, mThetaVideoEncoderFactory).apply {
                                 setEventListener(ClientListener())
                             }
@@ -418,7 +440,28 @@ class MainActivity : PluginActivity() {
                                                     .maxBitrateKbps(BuildConfig.VIDEO_BITRATE)
                                                     .build()))
                                     .receiving(ReceivingOption(false))
+                                    .apply {
+                                        if (isProxy(proxy)) {
+                                            this.proxy(proxy)
+                                        }
+                                    }
                                     .build()
+
+                            val libWebrtcLogFilePath = getExternalFilesDir(null)!!
+                                    .resolve("logs")
+                                    .resolve("libwebrtc")
+                                    .absolutePath
+                            val libWebrtcLogOptions = LibWebrtcLogOption.Builder(libWebrtcLogFilePath)
+                                    .maxTotalFileSize(4)
+                                    .logLevel(LibWebrtcLogLevel.INFO)
+                                    .build()
+                            try {
+                                mClient!!.setLibWebrtcLogOption(libWebrtcLogOptions)
+                            } catch (e: SDKError) {
+                                LOGGER.error(e.toReportString())
+                                return@submit
+                            }
+
                             mClient!!.connect(
                                     BuildConfig.CLIENT_ID,
                                     accessToken,
@@ -491,9 +534,9 @@ class MainActivity : PluginActivity() {
 
         override fun onOpen(event: LSOpenEvent) {
             LOGGER.debug("Client#onOpen")
-            val path = createFilePath() + ".log"
-            LOGGER.info("create log file: $path")
-            mRtcStatsLogger = RTCStatsLogger(File(path))
+            val file = createLogFile()
+            LOGGER.info("create log file: ${file.absolutePath}")
+            mRtcStatsLogger = RTCStatsLogger(file)
             capturer?.start()
 
             if (isSFU()) {
@@ -641,13 +684,20 @@ class MainActivity : PluginActivity() {
      * Example path: /storage/emulated/0/Android/data/{app_package_name}/files/logs/{date}T{time}.log
      */
     @SuppressLint("SimpleDateFormat")
-    private fun createFilePath(): String {
+    private fun getTimestamp(): String {
         val df = SimpleDateFormat("yyyyMMdd'T'HHmm")
-        val timestamp = df.format(Date())
+        return df.format(Date())
+    }
+    private fun createLogFile(): File {
         return getExternalFilesDir(null)!!
                 .resolve("logs")
-                .apply { mkdir() }
-                .resolve(timestamp)
+                .resolve("stats")
+                .resolve("stats_${getTimestamp()}.log")
+    }
+    private fun createImgFilePath(): String {
+        return getExternalFilesDir(null)!!
+                .resolve("logs")
+                .resolve("${getTimestamp()}.jpg")
                 .absolutePath
     }
 
@@ -686,6 +736,10 @@ class MainActivity : PluginActivity() {
 
     private fun isSFU(): Boolean {
         return "sfu" == Config.getRoomType().typeStr
+    }
+
+    private fun isProxy(proxy: String?): Boolean {
+        return proxy != "null" && proxy != ""
     }
 
     inner class AttitudeSendTimerTask : TimerTask() {

@@ -32,6 +32,7 @@ android {
             buildConfigField("int", "VIDEO_BITRATE", "10000")
         }
         buildConfigField("String", "INITIAL_AUDIO_MUTE", "\"" + props["initial_audio_mute"] + "\"")
+        buildConfigField("String", "PROXY", "\"" + props["proxy"] + "\"")
     }
 
     compileOptions {
