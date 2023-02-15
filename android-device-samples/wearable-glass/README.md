@@ -54,6 +54,22 @@ client_secret=kxiFVi6lzf14dffq3fg46ghg7dip1ash74ioisudsensJ9fe89f4fjijoiafDVcNmg
 * スピーカの音量は配信開始時にOSのRingのボリュームを読み取り、その値を音量に反映する
 
 ## ログ出力
+
+本アプリでは以下のログを出力する。
+
+* Clientログ
+  * `/storage/emulated/0/Android/data/com.ricoh.livestreaming.wearable_glass/files/logs/wearable_glass/` に出力
+* libwebrtcログ
+  * `/storage/emulated/0/Android/data/com.ricoh.livestreaming.wearable_glass/files/logs/libwebrtc/` に出力
+* statsログ
+  * `/storage/emulated/0/Android/data/com.ricoh.livestreaming.wearable_glass/files/logs/stats/` に出力
+
+以下のコマンドで本体ディスク上のログファイルをすべて取得できる。
+
+```sh
+$ adb pull /storage/emulated/0/Android/data/com.ricoh.livestreaming.wearable_glass/files/logs
+```
+
 ### Clientログ
 
 ログ出力には SLF4J を使用する。つまりアプリはSLF4Jに対応したログ実装を指定する必要がある。
@@ -65,28 +81,31 @@ client_secret=kxiFVi6lzf14dffq3fg46ghg7dip1ash74ioisudsensJ9fe89f4fjijoiafDVcNmg
 
 設定レベルより上位レベルのログも出力される。つまり TRACE レベルに設定するとすべてのログが出力される。そして最上位の ERROR レベルのログは常に出力される。
 
+アプリログは `/storage/emulated/0/Android/data/com.ricoh.livestreaming.wearable_glass/files/logs/wearable_glass/wearable-glass_20221215T143500.log` という名前で出力される。  
+ファイル名は実際の日時で `wearable-glass_yyyyMMdd'T'HHmmss.log` の形式となる。
+
 ### libwebrtcログ
 
-`Option.Builder#loggingSeverity()` でログ出力レベルの指定が可能。
+`Option.Builder#loggingSeverity()` で logcat に出力するログレベルの指定が可能。
 
-### 統計情報ログ出力機能
+また、`Client#setLibWebrtcLogOption()` を利用することで libwebrtc ログも本体のディスク上に `/storage/emulated/0/Android/data/com.ricoh.livestreaming.wearable_glass/files/logs/libwebrtc/webrtc_log_0` という名前で出力することができる。
 
-`RTCStats` を端末のディスク上に書き込む機能がある。
+libwebrtc ログは接続する度に "webrtc" プレフィックスのログファイルを削除して再作成する仕組みのため、  
+接続時に過去実行時の webrtc ログを残すために `/storage/emulated/0/Android/data/com.ricoh.livestreaming.wearable_glass/files/logs/libwebrtc/20221215T143500_webrtc_log_0` という名前のファイルにリネームしている。  
+リネーム後のファイル名は実際の日時で `yyyyMMdd'T'HHmmss_webrtc_log_{0始まりの連番}` の形式となる。
 
-`/storage/emulated/0/Android/data/com.ricoh.livestreaming.wearable_glass/files/logs/20190129T1629.log` という名前で出力される。
-ファイル名は実際の日時で `yyyyMMdd'T'HHmm` の形式となる。
-接続する度に新しいファイルが生成される。
+### statsログ
+
+`RTCStats` を本体のディスク上に書き込む機能がある。
+
+`/storage/emulated/0/Android/data/com.ricoh.livestreaming.wearable_glass/files/logs/stats/20190129T1629.log` という名前で出力される。
+ファイル名は実際の日時で `yyyyMMdd'T'HHmm` の形式となる。  
+このログファイルも接続する度に新しいファイルが生成される。
 
 ファイル形式は [LTSV](http://ltsv.org/) となっている。
 
-すべての情報を出力しているのではなく `candidate-pair`, `outbound-rtp`, `inbound-rtp`, `remote-inbound-rtp`, `track`, `sender`, `media-source` の情報だけ出力している。
+すべての情報を出力しているのではなく `candidate-pair`, `outbound-rtp`, `inbound-rtp`, `remote-inbound-rtp`, `track`, `sender`, `media-source`, `local-candidate`, `remote-candidate` の情報だけ出力している。
 
 その他の情報を出力したい場合は `RTCStatsLogger.kt` を修正する。
 出力可能な情報の一覧は https://www.w3.org/TR/webrtc-stats/ で確認できるが、
 libwebrtc の実装に依存するため、記載されているすべての情報が出力できるとは限らない。
-
-以下のコマンドで本体ディスク上のログファイルを取得できる。
-
-```sh
-$ adb pull /storage/emulated/0/Android/data/com.ricoh.livestreaming.wearable_glass/files/logs
-```
