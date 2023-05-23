@@ -10,7 +10,7 @@ RICOH Live Streaming Serviceは、映像/音声などのメディアデータや
 
 * サービスサイト: https://livestreaming.ricoh/
 * ソフトウェア開発者向けサイト: https://api.livestreaming.ricoh/
-* アカウント登録: https://livestreaming.ricoh/user_register.html
+* アカウント登録: https://console.livestreaming.mw.smart-integration.ricoh.com/login/register
 * ソフトウェア使用許諾契約書 : [Software License Agreement](SoftwareLicenseAgreement.txt)
 
 * NOTICE: This package includes SDK and sample application(s) for "RICOH Live Streaming Service".
