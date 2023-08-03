@@ -290,37 +290,37 @@
             android:text="@string/display_off" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <!-- Zenith correction -->
+    <!-- Streaming zenith correction -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:layout_constraintLeft_toLeftOf="parent"
         android:layout_marginTop="10dp"
-        android:id="@+id/zenith_correction_layout"
+        android:id="@+id/streaming_zenith_correction_layout"
         app:layout_constraintTop_toBottomOf="@+id/display_off_layout">
 
         <TextView
-            android:id="@+id/text_zenith_correction"
+            android:id="@+id/text_streaming_zenith_correction"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/zenith_correction"
+            android:text="@string/streaming_zenith_correction"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
         <RadioGroup
-            android:id="@+id/zenith_correction_radio"
+            android:id="@+id/streaming_zenith_correction_radio"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1.0"
             android:orientation="horizontal"
-            app:layout_constraintLeft_toRightOf="@id/text_zenith_correction"
+            app:layout_constraintLeft_toRightOf="@id/text_streaming_zenith_correction"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintHorizontal_chainStyle="spread_inside">
 
             <RadioButton
-                android:id="@+id/zenith_correction_off"
+                android:id="@+id/streaming_zenith_correction_off"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="20dp"
@@ -328,7 +328,53 @@
                 android:text="@string/off" />
 
             <RadioButton
-                android:id="@+id/zenith_correction_on"
+                android:id="@+id/streaming_zenith_correction_on"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="20dp"
+                android:text="@string/on" />
+        </RadioGroup>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- TakePicture zenith correction -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:layout_marginTop="10dp"
+        android:id="@+id/take_picture_zenith_correction_layout"
+        app:layout_constraintTop_toBottomOf="@+id/streaming_zenith_correction_layout">
+
+        <TextView
+            android:id="@+id/text_take_picture_zenith_correction"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/take_picture_zenith_correction"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <RadioGroup
+            android:id="@+id/take_picture_zenith_correction_radio"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1.0"
+            android:orientation="horizontal"
+            app:layout_constraintLeft_toRightOf="@id/text_take_picture_zenith_correction"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintHorizontal_chainStyle="spread_inside">
+
+            <RadioButton
+                android:id="@+id/take_picture_zenith_correction_off"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="20dp"
+                android:checked="true"
+                android:text="@string/off" />
+
+            <RadioButton
+                android:id="@+id/take_picture_zenith_correction_on"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="20dp"

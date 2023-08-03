@@ -21,9 +21,6 @@ import java.net.URLEncoder
 
 class MainActivity : AppCompatActivity(), TextWatcher {
     companion object {
-        const val SSID_KEY = "SSID"
-        const val SECURITY_KEY = "SECURITY"
-        const val PASSWORD_KEY = "PASSWORD"
         const val ROOM_ID_KEY = "ROOM_ID"
         const val SEND_RESOLUTION_KEY = "RESOLUTION_KEY"
         const val RESOLUTION_4K = 0
@@ -56,8 +53,6 @@ class MainActivity : AppCompatActivity(), TextWatcher {
         mActivityMainBinding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(mActivityMainBinding.root)
 
-        mActivityMainBinding.ssidEdit.text = Editable.Factory.getInstance().newEditable(getSavedStringData(SSID_KEY))
-        mActivityMainBinding.passwordEdit.text = Editable.Factory.getInstance().newEditable(getSavedStringData(PASSWORD_KEY))
         mActivityMainBinding.roomIdEdit.text = Editable.Factory.getInstance().newEditable(getSavedStringData(ROOM_ID_KEY))
         mActivityMainBinding.bitrateEdit.text = Editable.Factory.getInstance().newEditable(getSavedStringData(BITRATE_KEY, BITRATE_DEFAULT_VALUE))
         mActivityMainBinding.useProxy.isChecked = getSavedBooleanData(USE_PROXY_KEY, USE_PROXY_DEFAULT_VALUE)
@@ -66,34 +61,12 @@ class MainActivity : AppCompatActivity(), TextWatcher {
         mActivityMainBinding.proxyAuthentication.isChecked = getSavedBooleanData(AUTHENTICATION_KEY, AUTHENTICATION_DEFAULT_VALUE)
         mActivityMainBinding.proxyUser.text = Editable.Factory.getInstance().newEditable(getSavedStringData(USER))
         mActivityMainBinding.proxyPassword.text = Editable.Factory.getInstance().newEditable(getSavedStringData(PASSWORD))
-        mActivityMainBinding.ssidEdit.addTextChangedListener(this)
-        mActivityMainBinding.passwordEdit.addTextChangedListener(this)
         mActivityMainBinding.roomIdEdit.addTextChangedListener(this)
         mActivityMainBinding.bitrateEdit.addTextChangedListener(this)
         mActivityMainBinding.proxyAddress.addTextChangedListener(this)
         mActivityMainBinding.proxyPort.addTextChangedListener(this)
         mActivityMainBinding.proxyUser.addTextChangedListener(this)
         mActivityMainBinding.proxyPassword.addTextChangedListener(this)
-
-        mActivityMainBinding.securitySpinner.setSelection(getSavedIntData(SECURITY_KEY))
-        mActivityMainBinding.securitySpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onNothingSelected(parent: AdapterView<*>?) {
-            }
-
-            override fun onItemSelected(
-                    parent: AdapterView<*>?,
-                    view: View?,
-                    position: Int,
-                    id: Long
-            ) {
-                if (position == 0) {
-                    mActivityMainBinding.passwordLayout.visibility = GONE
-                } else {
-                    mActivityMainBinding.passwordLayout.visibility = VISIBLE
-                }
-                mActivityMainBinding.createButton.isEnabled = isButtonEnabled()
-            }
-        }
 
         if (mActivityMainBinding.useProxy.isChecked) {
             mActivityMainBinding.proxyAddress.isEnabled = true
@@ -113,7 +86,7 @@ class MainActivity : AppCompatActivity(), TextWatcher {
             mActivityMainBinding.proxyUser.isEnabled = false
             mActivityMainBinding.proxyPassword.isEnabled = false
         }
-        mActivityMainBinding.useProxy.setOnClickListener() {
+        mActivityMainBinding.useProxy.setOnClickListener {
             if (mActivityMainBinding.useProxy.isChecked) {
                 mActivityMainBinding.proxyAddress.isEnabled = true
                 mActivityMainBinding.proxyPort.isEnabled = true
@@ -133,7 +106,7 @@ class MainActivity : AppCompatActivity(), TextWatcher {
                 mActivityMainBinding.proxyPassword.isEnabled = false
             }
         }
-        mActivityMainBinding.proxyAuthentication.setOnClickListener() {
+        mActivityMainBinding.proxyAuthentication.setOnClickListener {
             if (mActivityMainBinding.proxyAuthentication.isChecked) {
                 mActivityMainBinding.proxyUser.isEnabled = true
                 mActivityMainBinding.proxyPassword.isEnabled = true
@@ -144,9 +117,6 @@ class MainActivity : AppCompatActivity(), TextWatcher {
         }
 
         mActivityMainBinding.createButton.setOnClickListener {
-            saveData(SSID_KEY, mActivityMainBinding.ssidEdit.text.toString())
-            saveData(PASSWORD_KEY, mActivityMainBinding.passwordEdit.text.toString())
-            saveData(SECURITY_KEY, mActivityMainBinding.securitySpinner.selectedItemId.toInt())
             saveData(ROOM_ID_KEY, mActivityMainBinding.roomIdEdit.text.toString())
             val resolution = if (mActivityMainBinding.sendResolutionGroup.checkedRadioButtonId == R.id.send_2k_radio) {
                 RESOLUTION_2K
@@ -164,9 +134,6 @@ class MainActivity : AppCompatActivity(), TextWatcher {
             saveData(PASSWORD, mActivityMainBinding.proxyPassword.text.toString())
 
             val json = JSONObject().apply {
-                put(SSID_KEY, mActivityMainBinding.ssidEdit.text.toString())
-                put(PASSWORD_KEY, mActivityMainBinding.passwordEdit.text.toString())
-                put(SECURITY_KEY, mActivityMainBinding.securitySpinner.selectedItemId.toInt())
                 put(ROOM_ID_KEY, mActivityMainBinding.roomIdEdit.text.toString())
                 put(SEND_RESOLUTION_KEY, resolution)
                 put(BITRATE_KEY, Integer.parseInt(mActivityMainBinding.bitrateEdit.text.toString()))
@@ -178,20 +145,6 @@ class MainActivity : AppCompatActivity(), TextWatcher {
             val intent = Intent(applicationContext, QRCodeActivity::class.java)
             intent.putExtra(INTENT_PARAM, json.toString())
             startActivity(intent)
-        }
-
-        mActivityMainBinding.showPassword.setOnCheckedChangeListener { button, isChecked ->
-            val pos = mActivityMainBinding.passwordEdit.selectionEnd
-            if (isChecked) {
-                mActivityMainBinding.passwordEdit.inputType = InputType.TYPE_CLASS_TEXT +
-                        InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-            } else {
-                mActivityMainBinding.passwordEdit.inputType = InputType.TYPE_CLASS_TEXT +
-                        InputType.TYPE_TEXT_VARIATION_PASSWORD
-            }
-            if (pos > 0) {
-                mActivityMainBinding.passwordEdit.setSelection(pos)
-            }
         }
 
         when (getSavedIntData(SEND_RESOLUTION_KEY, RESOLUTION_DEFAULT_VALUE)) {
@@ -225,13 +178,8 @@ class MainActivity : AppCompatActivity(), TextWatcher {
         mActivityMainBinding.createButton.isEnabled = isButtonEnabled()
     }
 
-
     private fun isButtonEnabled(): Boolean {
-        if (mActivityMainBinding.ssidEdit.text.isEmpty() || mActivityMainBinding.roomIdEdit.text.isEmpty() || mActivityMainBinding.bitrateEdit.text.isEmpty()) {
-            return false
-        }
-
-        if (mActivityMainBinding.securitySpinner.selectedItemId != 0L && mActivityMainBinding.passwordEdit.text.isEmpty()) {
+        if (mActivityMainBinding.roomIdEdit.text.isEmpty() || mActivityMainBinding.bitrateEdit.text.isEmpty()) {
             return false
         }
 

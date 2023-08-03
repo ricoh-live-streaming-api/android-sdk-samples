@@ -22,7 +22,8 @@
     <string name="unmute">unmute</string>
     <string name="mute">mute</string>
     <string name="display_off">Display off</string>
-    <string name="zenith_correction">Zenith correction</string>
+    <string name="streaming_zenith_correction">Streaming zenith correction</string>
+    <string name="take_picture_zenith_correction">TakePicture zenith correction</string>
     <string name="off">Off</string>
     <string name="on">On</string>
 </resources>

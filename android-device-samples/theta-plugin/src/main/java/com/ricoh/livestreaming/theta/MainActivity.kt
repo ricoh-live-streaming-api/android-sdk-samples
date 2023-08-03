@@ -20,10 +20,7 @@ import android.widget.ArrayAdapter
 import com.ricoh.livestreaming.*
 import com.ricoh.livestreaming.theta.databinding.ActivityMainBinding
 import com.ricoh.livestreaming.theta.webapi.ThetaWebApiClient
-import com.ricoh.livestreaming.webrtc.CodecUtils
-import com.ricoh.livestreaming.webrtc.ThetaCameraCapturer
-import com.ricoh.livestreaming.webrtc.ThetaVideoCapturer
-import com.ricoh.livestreaming.webrtc.ThetaXCameraCapturer
+import com.ricoh.livestreaming.webrtc.*
 import com.theta360.pluginlibrary.activity.PluginActivity
 import com.theta360.pluginlibrary.callback.KeyCallback
 import com.theta360.pluginlibrary.receiver.KeyReceiver
@@ -35,7 +32,6 @@ import org.slf4j.LoggerFactory
 import org.webrtc.EglBase
 import org.webrtc.EglBase14
 import java.io.File
-import java.net.URLEncoder
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.Executors
@@ -92,6 +88,8 @@ class MainActivity : PluginActivity() {
     private var savedStreamVolume = 0
     private var isDisplayOff = false
     private var prevDisplayBrightness = 0
+
+    private val mTakePictureOptionsParam = TakePictureOptionsParam()
 
     /** View Binding */
     private lateinit var mActivityMainBinding: ActivityMainBinding
@@ -211,16 +209,21 @@ class MainActivity : PluginActivity() {
         }
         mActivityMainBinding.displayOffButton.isEnabled = false
 
-        // Zenith correction
+        // Streaming zenith correction
         if (isThetaX()) {
-            mActivityMainBinding.zenithCorrectionRadio.setOnCheckedChangeListener { _, checkedId ->
+            mActivityMainBinding.streamingZenithCorrectionRadio.setOnCheckedChangeListener { _, checkedId ->
                 val c = capturer
                 if (c is ThetaXCameraCapturer) {
-                    c.setZenithCorrection(checkedId == R.id.zenith_correction_on)
+                    c.setStreamingZenithCorrection(checkedId == R.id.streaming_zenith_correction_on)
                 }
             }
         } else {
-            mActivityMainBinding.zenithCorrectionLayout.visibility = View.GONE
+            mActivityMainBinding.streamingZenithCorrectionLayout.visibility = View.GONE
+        }
+
+        // TakePicture zenith correction
+        mActivityMainBinding.takePictureZenithCorrectionRadio.setOnCheckedChangeListener { _, checkedId ->
+            mTakePictureOptionsParam.zenithCorrectionEnabled = checkedId == R.id.take_picture_zenith_correction_on
         }
 
         if (isSFU() && !isThetaX()) {
@@ -353,16 +356,33 @@ class MainActivity : PluginActivity() {
                     if (!isCanceled && mClient?.state == Client.State.OPEN) {
                         try {
                             LOGGER.info("try to take a picture.")
-                            capturer?.takePicture { data ->
+                            zenithCorrectionSensorStart()
+                            val options = TakePictureOptions
+                                .Builder(mTakePictureOptionsParam.zenithCorrectionEnabled)
+                                .build()
+                            capturer?.takePicture(options) { data ->
                                 notificationAudioShutter()
                                 val path = createImgFilePath()
                                 LOGGER.info("Save Still Image to {}", path)
                                 File(path).writeBytes(data)
                             }
+                            zenithCorrectionSensorStop()
                         } catch (e: IllegalStateException) {
+                            zenithCorrectionSensorStop()
                             LOGGER.error("Failed to takePicture.", e)
                         }
                     }
+                }
+            }
+
+            private fun zenithCorrectionSensorStart() {
+                if (!isThetaX()) {
+                    notificationSensorStart()
+                }
+            }
+            private fun zenithCorrectionSensorStop() {
+                if (!isThetaX()) {
+                    notificationSensorStop()
                 }
             }
 
@@ -381,9 +401,6 @@ class MainActivity : PluginActivity() {
                             if (isSFU() && !isThetaX()) {
                                 mAttitude!!.start()
                             }
-
-                            // 過去実行時のlibwebrtcログがある場合は退避します。
-                            saveLibWebrtcLog()
 
                             val roomSpec = RoomSpec(Config.getRoomType())
                             val rand = Random()

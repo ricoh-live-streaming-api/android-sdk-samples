@@ -6,14 +6,14 @@
 
 ## 動かし方
 
-1. Android Studio で ClientSDK のルートディレクトリごとインポートする。
+1. Android Studio で ClientSDK のルートディレクトリごとインポートする
 2. Client ID, Secret, Room ID を取得する
-3. 設定ファイルを作成する。
-4. ビルドして 端末 上で起動する。
+3. 設定ファイルを作成する
+4. ビルドして 端末 上で起動する
 
 ### 設定ファイル
 
-* 以下の書式で `wearable-glass/local.properties` を作成する。
+* 以下の書式で `wearable-glass/local.properties` を作成する
   * `client_id` と `client_secret` は実際の値を入れる
 
 ```
@@ -32,6 +32,9 @@ client_secret=kxiFVi6lzf14dffq3fg46ghg7dip1ash74ioisudsensJ9fe89f4fjijoiafDVcNmg
   * https://api.livestreaming.ricoh/document/ricoh-live-streaming-client-app-for-theta-sender%e3%81%a8ricoh-live-streaming-conference%e3%82%92%e7%b5%84%e3%81%bf%e5%90%88%e3%82%8f%e3%81%9b%e3%81%a6%e5%8b%95%e4%bd%9c%e7%a2%ba%e8%aa%8d%e3%81%97/
 
 ## アプリの操作方法
+
+本アプリケーションはインターネット接続が必要となります。  
+M400 のインターネット接続については[こちら](https://support.vuzix.jp/s/article/how-to-connect-wifi-m400)を参照ください。
 
 ### 初めての起動
 * ウェアラブルグラスで `RICOH Live Streaming Client App` アプリ起動後、カメラとマイクのパーミッションが要求されるため許可する
