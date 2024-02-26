@@ -83,7 +83,6 @@ class MainActivity : PluginActivity() {
 
     private var isCameraKeyLongPressed = false
 
-    private var savedAudioMode = AudioManager.MODE_NORMAL
     private var savedIsSpeakerPhoneOn = false
     private var savedStreamVolume = 0
     private var isDisplayOff = false
@@ -301,11 +300,9 @@ class MainActivity : PluginActivity() {
         if (isThetaX()) {
             val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-            savedAudioMode = audioManager.mode
             savedIsSpeakerPhoneOn = audioManager.isSpeakerphoneOn
             savedStreamVolume = audioManager.getStreamVolume(AudioManager.STREAM_VOICE_CALL)
 
-            audioManager.mode = AudioManager.MODE_IN_CALL
             audioManager.setStreamVolume(
                     AudioManager.STREAM_VOICE_CALL,
                     audioManager.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL),
@@ -511,7 +508,6 @@ class MainActivity : PluginActivity() {
         if (isThetaX()) {
             val audioManager: AudioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-            audioManager.mode = savedAudioMode
             audioManager.isSpeakerphoneOn = savedIsSpeakerPhoneOn
             audioManager.setStreamVolume(
                     AudioManager.STREAM_VOICE_CALL,
