@@ -264,7 +264,7 @@ abstract class BaseActivity : AppCompatActivity() {
         }
 
         override fun onOpen(event: LSOpenEvent) {
-            LOGGER.debug("Client#onOpen")
+            LOGGER.debug("Client#onOpen(accessTokenJson={}, connectionsStatus.video.receiver_existence={})", event.accessTokenJson, event.connectionsStatus.video.receiverExistence)
 
             mVideoCapturer!!.start()
             eventOnOpen()
@@ -353,6 +353,10 @@ abstract class BaseActivity : AppCompatActivity() {
             LOGGER.debug("Client#onUpdateRemoteTrack({} {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id())
 
             eventOnUpdateRemoteTrack(event.connectionId, event.stream, event.mediaStreamTrack, event.meta)
+        }
+
+        override fun onUpdateConnectionsStatus(event: LSUpdateConnectionsStatusEvent) {
+            LOGGER.debug("Client#onUpdateConnectionsStatus(connectionsStatus.video.receiver_existence={})", event.connectionsStatus.video.receiverExistence)
         }
 
         override fun onUpdateMute(event: LSUpdateMuteEvent) {

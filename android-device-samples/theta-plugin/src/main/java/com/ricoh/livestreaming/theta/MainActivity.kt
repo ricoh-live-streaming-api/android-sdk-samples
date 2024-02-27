@@ -546,7 +546,8 @@ class MainActivity : PluginActivity() {
         }
 
         override fun onOpen(event: LSOpenEvent) {
-            LOGGER.debug("Client#onOpen")
+            LOGGER.debug("Client#onOpen(accessTokenJson={}, connectionsStatus.video.receiver_existence={})", event.accessTokenJson, event.connectionsStatus.video.receiverExistence)
+
             val file = createLogFile()
             LOGGER.info("create log file: ${file.absolutePath}")
             mRtcStatsLogger = RTCStatsLogger(file)
@@ -639,7 +640,7 @@ class MainActivity : PluginActivity() {
             LOGGER.debug("Client#onAddRemoteConnection(connectionId = ${event.connectionId})")
 
             for ((key, value) in event.meta) {
-                LOGGER.debug("metadata key=${key} : value=${value}")
+                LOGGER.debug("metadata key={} : value={}", key, value)
             }
         }
 
@@ -647,7 +648,7 @@ class MainActivity : PluginActivity() {
             LOGGER.debug("Client#onRemoveRemoteConnection(connectionId = ${event.connectionId})")
 
             for ((key, value) in event.meta) {
-                LOGGER.debug("metadata key=${key} : value=${value}")
+                LOGGER.debug("metadata key={} : value={}", key, value)
             }
 
             for (mediaStreamTrack in event.mediaStreamTracks) {
@@ -659,7 +660,7 @@ class MainActivity : PluginActivity() {
             LOGGER.debug("Client#onAddRemoteTrack({}, {}, {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id(), event.mute)
 
             for ((key, value) in event.meta) {
-                LOGGER.debug("metadata key=${key} : value=${value}")
+                LOGGER.debug("metadata key={} : value={}", key, value)
             }
         }
 
@@ -667,7 +668,7 @@ class MainActivity : PluginActivity() {
             LOGGER.debug("Client#onUpdateRemoteConnection(connectionId = ${event.connectionId})")
 
             for ((key, value) in event.meta) {
-                LOGGER.debug("metadata key=${key} : value=${value}")
+                LOGGER.debug("metadata key={} : value={}", key, value)
             }
         }
 
@@ -675,8 +676,12 @@ class MainActivity : PluginActivity() {
             LOGGER.debug("Client#onUpdateRemoteTrack({} {}, {})", event.connectionId, event.stream.id, event.mediaStreamTrack.id())
 
             for ((key, value) in event.meta) {
-                LOGGER.debug("metadata key=${key} : value=${value}")
+                LOGGER.debug("metadata key={} : value={}", key, value)
             }
+        }
+
+        override fun onUpdateConnectionsStatus(event: LSUpdateConnectionsStatusEvent) {
+            LOGGER.debug("Client#onUpdateConnectionsStatus(connectionsStatus.video.receiver_existence={})", event.connectionsStatus.video.receiverExistence)
         }
 
         override fun onUpdateMute(event: LSUpdateMuteEvent) {

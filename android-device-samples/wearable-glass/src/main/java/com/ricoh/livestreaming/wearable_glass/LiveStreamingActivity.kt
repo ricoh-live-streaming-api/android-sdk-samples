@@ -349,7 +349,7 @@ class LiveStreamingActivity : AppCompatActivity() {
         }
 
         override fun onOpen(event: LSOpenEvent) {
-            LOGGER.debug("Client#onOpen")
+            LOGGER.debug("Client#onOpen(accessTokenJson={}, connectionsStatus.video.receiver_existence={})", event.accessTokenJson, event.connectionsStatus.video.receiverExistence)
 
             // == For WebRTC Internal Tracing Capture.
             // == "/sdcard/{LOGS_DIR}/{date}T{time}.log.json" will be created.
@@ -474,6 +474,10 @@ class LiveStreamingActivity : AppCompatActivity() {
             for ((key, value) in event.meta) {
                 LOGGER.debug("metadata key=${key} : value=${value}")
             }
+        }
+
+        override fun onUpdateConnectionsStatus(event: LSUpdateConnectionsStatusEvent) {
+            LOGGER.debug("Client#onUpdateConnectionsStatus(connectionsStatus.video.receiver_existence={})", event.connectionsStatus.video.receiverExistence)
         }
 
         override fun onUpdateMute(event: LSUpdateMuteEvent) {
