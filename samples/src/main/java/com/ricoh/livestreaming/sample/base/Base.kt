@@ -6,6 +6,7 @@ package com.ricoh.livestreaming.sample.base
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.os.Build
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -35,11 +36,14 @@ abstract class BaseActivity : AppCompatActivity() {
         private val LOGGER = LoggerFactory.getLogger(BaseActivity::class.java)
         private val LOCK = Object()
         private const val PERMISSION_REQUEST_CODE = 1813480588
-        private val REQUIRED_PERMISSIONS = listOf(
+        private val REQUIRED_PERMISSIONS = mutableListOf(
                 Manifest.permission.CAMERA,
                 Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
-
+        ).apply {
+            if (Build.VERSION.SDK_INT <= 29) {
+                add(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            }
+        }
     }
 
     private lateinit var mEgl: EglBase

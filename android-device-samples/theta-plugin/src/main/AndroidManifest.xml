@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
 
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature
         android:name="com.theta360.receptor.x"
         android:required="true" />
@@ -43,12 +44,19 @@
         android:theme="@style/AppTheme"
         tools:ignore="AllowBackup,GoogleAppIndexingWarning">
         <activity
-            android:name=".MainActivity"
+            android:name=".AdaptiveSendingActivity"
             android:configChanges="keyboardHidden|screenSize|orientation"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".ChangeFormatActivity"
+            android:configChanges="keyboardHidden|screenSize|orientation"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>

@@ -3,25 +3,26 @@ apply plugin: 'com.android.library'
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'org.slf4j:slf4j-api:1.7.28'
-    implementation 'com.github.tony19:logback-android:1.3.0-3'
-    implementation 'com.squareup.okhttp3:okhttp:3.11.0'
-    implementation 'com.google.code.gson:gson:2.8.5'
-    implementation 'com.theta360:pluginlibrary:3.0.0'
-    api 'io.jsonwebtoken:jjwt-api:0.11.2'
-    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.2'
+    implementation 'org.slf4j:slf4j-api:2.0.9'
+    implementation 'com.github.tony19:logback-android:3.0.0'
+    implementation 'com.squareup.okhttp3:okhttp:4.11.0'
+    implementation 'com.google.code.gson:gson:2.11.0'
+    api 'io.jsonwebtoken:jjwt-api:0.11.5'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly('io.jsonwebtoken:jjwt-orgjson:0.11.2') {
         exclude group: 'org.json', module: 'json'
     }
 **DEPS**}
 
 android {
+    namespace "com.unity3d.player"
+    ndkPath "**NDKPATH**"
     compileSdkVersion **APIVERSION**
     buildToolsVersion '**BUILDTOOLS**'
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     defaultConfig {
@@ -41,9 +42,9 @@ android {
 
     aaptOptions {
         noCompress = **BUILTIN_NOCOMPRESS** + unityStreamingAssets.tokenize(', ')
-        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~"
+        ignoreAssetsPattern = "!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~"
     }**PACKAGING_OPTIONS**
-}**REPOSITORIES**
+}
 **IL_CPP_BUILD_SETUP**
 **SOURCE_BUILD_SETUP**
 **EXTERNAL_SOURCES**

@@ -13,9 +13,9 @@
     <string name="p2p_turn">P2P+Turn</string>
     <string name="live_streaming_state_label">LiveStreamingState</string>
     <string name="resolution_label">Resolution</string>
-    <string name="current_resolution">%1$dx%2$d@%3$dfps</string>
+    <string name="current_resolution">Auto in progress</string>
     <string name="bitrate_label">Bitrate</string>
-    <string name="current_bitrate">%1$dMbps</string>
+    <string name="current_bitrate">Auto in progress</string>
     <string name="change">Change</string>
     <string name="auto">Auto</string>
     <string name="audio">Audio</string>

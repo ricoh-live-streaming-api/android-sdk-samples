@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 public class Keyboard : MonoBehaviour
 {
@@ -11,7 +12,7 @@ public class Keyboard : MonoBehaviour
     /// <summary>
     /// InputField object that the script will modify
     /// </summary>
-    public InputField inputField;
+    public TMP_InputField inputField;
     /// <summary>
     /// Timer for input delay
     /// </summary>
@@ -40,7 +41,6 @@ public class Keyboard : MonoBehaviour
         {
             Text addText = buttonObject.GetComponentInChildren<Text>();
             inputField.text += addText.text;
-            StartVibration(vibrationTime);
         }
     }
 
@@ -52,7 +52,6 @@ public class Keyboard : MonoBehaviour
             if (0 < inputField.text.Length)
             {
                 inputField.text = inputField.text.Substring(0, inputField.text.Length - 1);
-                StartVibration(vibrationTime);
             }
         }
     }
@@ -76,20 +75,7 @@ public class Keyboard : MonoBehaviour
                 }
                 Text shiftText = shiftButton.GetComponentInChildren<Text>();
                 shiftText.text = (isShift ? shiftText.text.ToUpper() : shiftText.text.ToLower());
-                StartVibration(vibrationTime);
             }
         }
-    }
-
-    private void StartVibration(float time)
-    {
-        OVRInput.SetControllerVibration(0.1F, 0.7F, OVRInput.Controller.RTouch);
-        StartCoroutine(StopVibrationWithDelay(time));
-    }
-
-    private IEnumerator StopVibrationWithDelay(float delay)
-    {
-        yield return new WaitForSeconds(delay);
-        OVRInput.SetControllerVibration(0, 0, OVRInput.Controller.RTouch);
     }
 }

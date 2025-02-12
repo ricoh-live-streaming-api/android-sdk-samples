@@ -8,7 +8,7 @@
         </encoder>
     </appender>
 
-    <property name="app_log_path" value="${EXT_DIR:-/sdcard}/Android/data/${PACKAGE_NAME}/files/logs/wearable_glass" />
+    <define name="app_log_path" class="com.ricoh.livestreaming.wearable_glass.ExternalLogFileDefiner"/>
     <timestamp key="timestamp" datePattern="yyyyMMdd'T'HHmmss"/>
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>${app_log_path}/wearable-glass_${timestamp}.log</file>

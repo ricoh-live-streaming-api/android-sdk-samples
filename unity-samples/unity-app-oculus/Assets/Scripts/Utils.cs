@@ -6,18 +6,24 @@ using UnityEngine;
 
 class Utils
 {
-    public static string CreateLogPath()
+    public static string CreateStatsLogPath()
     {
-        var path = Application.persistentDataPath + "/logs";
+        var logsPath = Application.persistentDataPath + "/logs";
+        var statsLogsPath = logsPath + "/stats";
         var dt = DateTime.Now;
         var fileName = dt.ToString("yyyyMMdd'T'HHmm") + ".log";
 
-        if (!Directory.Exists(path))
+        if (!Directory.Exists(logsPath))
         {
-            Directory.CreateDirectory(path);
+            Directory.CreateDirectory(logsPath);
+        }
+        if (!Directory.Exists(statsLogsPath))
+        {
+            Directory.CreateDirectory(statsLogsPath);
         }
 
-        return path + "/" + fileName;
+
+        return statsLogsPath + "/" + fileName;
     }
 
     public static AndroidJavaObject GetJavaObject(object val)

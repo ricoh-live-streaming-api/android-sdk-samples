@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Threading.Tasks;
@@ -8,11 +8,12 @@ using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using UnityEngine.Android;
 using System.Collections;
+using TMPro;
+using UnityEngine.InputSystem;
+using System.IO;
 
 public class LiveStreaming : MonoBehaviour
 {
-    [SerializeField]
-    private GameObject uiHelpersToInstantiate = null;
     [SerializeField]
     private GameObject menuCanvas = null;
     [SerializeField]
@@ -26,7 +27,7 @@ public class LiveStreaming : MonoBehaviour
     [SerializeField]
     private GameObject dualFisheyeSphere = null;
     [SerializeField]
-    private GameObject normalVideoPlane = null;
+    private RawImage normalVideoPlane = null;
     [SerializeField]
     private GameObject LController = null;
     [SerializeField]
@@ -34,7 +35,7 @@ public class LiveStreaming : MonoBehaviour
     [SerializeField]
     private Material rgbaMaterial = null;
     [SerializeField]
-    private Dropdown roomTypeDropDown = null;
+    private TMP_Dropdown roomTypeDropDown = null;
 
     private SynchronizationContext unityUIContext;
     private AndroidJavaObject unityPlugin;
@@ -45,7 +46,7 @@ public class LiveStreaming : MonoBehaviour
     AndroidJavaObject pendingFrame = null;
     private VideoRenderManager videoRenderManager;
 
-    private InputField inputFieldRoomID;
+    private TMP_InputField inputFieldRoomID;
 
     // Texture
     private Texture2D rgbaTexture;
@@ -54,10 +55,6 @@ public class LiveStreaming : MonoBehaviour
     private Logger logger;
     private RTCStatsLogger statsLogger;
     private System.Timers.Timer statsTimer = null;
-
-    private LaserPointer laserPointer;
-
-    public LaserPointer.LaserBeamBehavior laserBeamBehavior;
 
     private UserDataManager userDataManager;
 
@@ -72,7 +69,9 @@ public class LiveStreaming : MonoBehaviour
     // Renderer
     private Renderer equirectangularRenderer;
     private Renderer dualFisheyeRenderer;
-    private Renderer normalVideoRenderer;
+
+    private Vector2 normalPlaneVideoViewOriginalSize;
+    private string libWebRTCLogDirPath;
 
     [DllImport("ls-client")]
     private static extern IntPtr getRenderEventFunc();
@@ -98,11 +97,11 @@ public class LiveStreaming : MonoBehaviour
         // video plane is not displayed at first
         equirectangularSphere.SetActive(false);
         dualFisheyeSphere.SetActive(false);
-        normalVideoPlane.SetActive(false);
+        normalVideoPlane.gameObject.SetActive(false);
         equirectangularSphereQuaternion = equirectangularSphere.transform.localRotation;
         dualFisheyeSphereQuaternion = dualFisheyeSphere.transform.localRotation;
 
-        inputFieldRoomID = roomID.GetComponent<InputField>();
+        inputFieldRoomID = roomID.GetComponent<TMP_InputField>();
         if (inputFieldRoomID != null)
         {
             // set previous value of RoomID
@@ -112,47 +111,34 @@ public class LiveStreaming : MonoBehaviour
 
         equirectangularRenderer = equirectangularSphere.GetComponent<Renderer>();
         dualFisheyeRenderer = dualFisheyeSphere.GetComponent<Renderer>();
-        normalVideoRenderer = normalVideoPlane.GetComponent<Renderer>();
 
         equirectangularRenderer.material = rgbaMaterial;
         dualFisheyeRenderer.material = rgbaMaterial;
-        normalVideoRenderer.material = rgbaMaterial;
+        normalVideoPlane.material = rgbaMaterial;
 
-        // setup UIHelper
-        if (uiHelpersToInstantiate)
-        {
-            GameObject.Instantiate(uiHelpersToInstantiate);
-        }
-
-        // setup LaserPointer
-        laserPointer = FindObjectOfType<LaserPointer>();
-        if (!laserPointer)
-        {
-            logger.Error("Debug UI requires use of a LaserPointer and will not function without it. Add one to your scene, or assign the UIHelpers prefab to the DebugUIBuilder in the inspector.");
-            yield break;
-        }
-        laserPointer.laserBeamBehavior = LaserPointer.LaserBeamBehavior.On;
-
-        // add HMD unmounted listener
-        OVRManager.HMDUnmounted += HMDUnmounted;
+        var rt = normalVideoPlane.transform as RectTransform;
+        normalPlaneVideoViewOriginalSize = rt.sizeDelta;
 
         roomTypeDropDown.ClearOptions();
         foreach (RoomSpec.Type type in Enum.GetValues(typeof(RoomSpec.Type)))
         {
-            roomTypeDropDown.options.Add(new Dropdown.OptionData(type.ToString()));
+            roomTypeDropDown.options.Add(new TMP_Dropdown.OptionData(type.ToString()));
         }
         roomTypeDropDown.value = 0;
         roomTypeDropDown.RefreshShownValue();
 
+        var logsDirPath = Application.persistentDataPath + "/logs";
+        libWebRTCLogDirPath = logsDirPath + "/libwebrtc";
+        if (!Directory.Exists(logsDirPath)) {
+            Directory.CreateDirectory(logsDirPath);
+        }
+        if (!Directory.Exists(libWebRTCLogDirPath)) {
+            Directory.CreateDirectory(libWebRTCLogDirPath);
+        }
+
         if (!Permission.HasUserAuthorizedPermission(Permission.Microphone))
         {
             yield return RequestPermission(Permission.Microphone);
-
-            if (!Permission.HasUserAuthorizedPermission(Permission.Microphone)) {
-                // パーミッションの許可がされなかったためアプリを終了する
-                logger.Error("Microphone permission is not granted.");
-                Application.Quit();
-            }
         }
 
         yield break;
@@ -162,11 +148,32 @@ public class LiveStreaming : MonoBehaviour
     {
         logger.Info("RequestPermission " + permission);
 
-        Permission.RequestUserPermission(permission);
+        var callbacks = new PermissionCallbacks();
+        callbacks.PermissionDenied += OnPermissionDenied;
+        callbacks.PermissionGranted += OnPermissionGranted;
+        callbacks.PermissionDeniedAndDontAskAgain += OnPermissionDeniedAndDontAskAgain;
+
+        Permission.RequestUserPermission(permission, callbacks);
 
         yield break;
     }
 
+    private void OnPermissionDeniedAndDontAskAgain(string permissionName)
+    {
+        logger.Warn("OnPermissionDeniedAndDontAskAgain");
+        Application.Quit();
+    }
+
+    private void OnPermissionGranted(string permissName)
+    {
+        logger.Info("OnPermissionGranted");
+    }
+
+    private void OnPermissionDenied(string permissName)
+    {
+        logger.Info("OnPermissionDenied");
+        Application.Quit();
+    }
 
     public void OnApplicationQuit()
     {
@@ -186,13 +193,6 @@ public class LiveStreaming : MonoBehaviour
         {
             // add time of controls display time
             displayedControllsTime += Time.deltaTime;
-
-            if (!OVRManager.hasInputFocus)
-            {
-                logger.Debug("***OVRManager.hasInputFocus is false");
-                // disconnect because application focus lost
-                Disconnect();
-            }
         }
 
         lock (frameLock)
@@ -207,12 +207,12 @@ public class LiveStreaming : MonoBehaviour
 
                     equirectangularSphere.SetActive(videoFormat == VideoRenderManager.VideoFormat.Equi);
                     dualFisheyeSphere.SetActive(videoFormat == VideoRenderManager.VideoFormat.DualFisheye);
-                    normalVideoPlane.SetActive(videoFormat == VideoRenderManager.VideoFormat.Normal);
+                    normalVideoPlane.gameObject.SetActive(videoFormat == VideoRenderManager.VideoFormat.Normal);
 
                     using (AndroidJavaObject buffer = pendingFrame.Call<AndroidJavaObject>("getBuffer"))
                     {
-                        int width = buffer.Call<int>("getWidth");
-                        int height = buffer.Call<int>("getHeight");
+                        int width = pendingFrame.Call<int>("getRotatedWidth");
+                        int height = pendingFrame.Call<int>("getRotatedHeight");
 
                         if (rgbaTexture == null || rgbaTexture.width != width || rgbaTexture.height != height)
                         {
@@ -221,7 +221,9 @@ public class LiveStreaming : MonoBehaviour
                             rgbaTexture = new Texture2D(width, height, TextureFormat.RGB24, false);
                             equirectangularRenderer.material.mainTexture = rgbaTexture;
                             dualFisheyeRenderer.material.mainTexture = rgbaTexture;
-                            normalVideoRenderer.material.mainTexture = rgbaTexture;
+                            normalVideoPlane.texture = rgbaTexture;
+
+                            AdjustAspectNormalVideoPlane(width, height);
                         }
 
                         var rgb888Buffer = unityPixelReader.Call<sbyte[]>("readPixelsAsync", pendingFrame);
@@ -242,44 +244,9 @@ public class LiveStreaming : MonoBehaviour
             }
         }
 
-        if (equirectangularSphere.activeSelf || dualFisheyeSphere.activeSelf)
-        {
-            // rotate display direction(Equirectangular mode and DualFisheye mode)
-            if (OVRInput.GetDown(OVRInput.RawButton.LThumbstickLeft | OVRInput.RawButton.RThumbstickLeft))
-            {
-                // rotate to left
-                equirectangularSphere.transform.Rotate(0, -18, 0);
-                dualFisheyeSphere.transform.Rotate(0, 18, 0);
-            }
-            else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstickRight | OVRInput.RawButton.RThumbstickRight))
-            {
-                // rotate to right
-                equirectangularSphere.transform.Rotate(0, 18, 0);
-                dualFisheyeSphere.transform.Rotate(0, -18, 0);
-            }
-            else if (OVRInput.GetDown(OVRInput.RawButton.LThumbstick | OVRInput.RawButton.RThumbstick))
-            {
-                // return to initial direction
-                equirectangularSphere.transform.localRotation = equirectangularSphereQuaternion;
-                dualFisheyeSphere.transform.localRotation = dualFisheyeSphereQuaternion;
-            }
-        }
-
-        if (OVRInput.GetDown(OVRInput.Button.Two))
-        {
-            // Switch display participant.
-            videoRenderManager.ToggleDisplay();
-        }
-
         if (isConnected)
         {   // if no operation has been performed for a certain period of time during streaming, controls disappears
             // check if the controller is operated
-            if (OVRInput.GetDown(OVRInput.RawButton.Any, OVRInput.Controller.All))
-            {
-                // if any button is pressed, reset display time and show controls
-                displayedControllsTime = 0.0F;
-                SetMenuActive(true);
-            }
             if (displayedControllsTime >= 5.0F)
             {
                 // disappear controls
@@ -294,6 +261,26 @@ public class LiveStreaming : MonoBehaviour
     }
 
     /// <summary>
+    /// normalVideoPlaneをアスペクト比に合わせた表示にする
+    /// </summary>
+    /// <param name="frameWidth">width</param>
+    /// <param name="frameHeight">height</param>
+    private void AdjustAspectNormalVideoPlane(int frameWidth, int frameHeight)
+    {
+        var textureSize = new Vector2(frameWidth, frameHeight);
+
+        var heightScale = normalPlaneVideoViewOriginalSize.y / frameHeight;
+        var widthScale = normalPlaneVideoViewOriginalSize.x / frameWidth;
+        Vector2 rectSize = textureSize * Mathf.Min(heightScale, widthScale);
+
+        Vector2 anchorDiff = normalVideoPlane.rectTransform.anchorMax - normalVideoPlane.rectTransform.anchorMin;
+        Vector2 parentSize = (normalVideoPlane.transform.parent as RectTransform).rect.size;
+        Vector2 anchorSize = parentSize * anchorDiff;
+
+        normalVideoPlane.rectTransform.sizeDelta = rectSize - anchorSize;
+    }
+
+    /// <summary>
     /// 確保したTextureを解放する
     /// </summary>
     private void CleanUp()
@@ -302,16 +289,6 @@ public class LiveStreaming : MonoBehaviour
         {
             GameObject.Destroy(rgbaTexture);
             rgbaTexture = null;
-        }
-    }
-
-    private void HMDUnmounted()
-    {
-        logger.Info("HMDUnmounted() is called.");
-        if (isConnected)
-        {
-            // disconnect because HMD unmounted
-            Disconnect();
         }
     }
 
@@ -324,6 +301,74 @@ public class LiveStreaming : MonoBehaviour
             Disconnect();
         }
     }
+
+    public void OnControllerPressed(InputAction.CallbackContext context)
+    {
+        if (context.action.phase == InputActionPhase.Performed && isConnected)
+        {
+            // if any button is pressed, reset display time and show controls
+            displayedControllsTime = 0.0F;
+            SetMenuActive(true);
+        }
+    }
+
+    /// <summary>
+    /// スティックボタンを左右に倒したときに呼ばれるイベントハンドラ
+    /// </summary>
+    public void OnMovePosition(InputAction.CallbackContext context)
+    {
+        if (context.action.phase == InputActionPhase.Performed)
+        {
+            if (equirectangularSphere.activeSelf || dualFisheyeSphere.activeSelf)
+            {
+                logger.Info("OnMovePosition");
+                // rotate display direction(Equirectangular mode and DualFisheye mode)
+                Vector2 inputMovement = context.ReadValue<Vector2>();
+                if (inputMovement.x < 0)
+                {
+                    // rotate to left
+                    equirectangularSphere.transform.Rotate(0, -18, 0);
+                    dualFisheyeSphere.transform.Rotate(0, 18, 0);
+                }
+                else if (inputMovement.x > 0)
+                {
+                    // rotate to right
+                    equirectangularSphere.transform.Rotate(0, 18, 0);
+                    dualFisheyeSphere.transform.Rotate(0, -18, 0);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// スティックボタンを押し込んだときに呼ばれるイベントハンドラ
+    /// </summary>
+    public void OnInitilizeRotation(InputAction.CallbackContext context)
+    {
+        if (context.action.phase == InputActionPhase.Performed)
+        {
+            if (equirectangularSphere.activeSelf || dualFisheyeSphere.activeSelf)
+            {
+                // return to initial direction
+                equirectangularSphere.transform.localRotation = equirectangularSphereQuaternion;
+                dualFisheyeSphere.transform.localRotation = dualFisheyeSphereQuaternion;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 右スティックのBボタンを押したときに呼ばれるイベントハンドラ
+    /// </summary>
+    public void OnSwitchDisplay(InputAction.CallbackContext context)
+    {
+        if (context.action.phase == InputActionPhase.Performed)
+        {
+            logger.Info("OnSwitchDisplay");
+            // Switch display participant.
+            videoRenderManager.ToggleDisplay();
+        }
+    }
+
 
     public void OnConnectButtonClick()
     {
@@ -359,7 +404,6 @@ public class LiveStreaming : MonoBehaviour
     private void SetMenuActive(bool isDisplay)
     {
         menuCanvas.SetActive(isDisplay);
-        laserPointer.laserBeamBehavior = (isDisplay ? LaserPointer.LaserBeamBehavior.On : LaserPointer.LaserBeamBehavior.Off);
         LController.SetActive(isDisplay);
         RController.SetActive(isDisplay);
     }
@@ -389,6 +433,16 @@ public class LiveStreaming : MonoBehaviour
                     }
                     client = unityPlugin.Call<AndroidJavaObject>("getClient");
                     client.Call("setEventListener", new ClientListener(this));
+
+                    using (var logOptionBuilder = new AndroidJavaObject("com.ricoh.livestreaming.LibWebrtcLogOption$Builder", libWebRTCLogDirPath))
+                    {
+                        logOptionBuilder.Call<AndroidJavaObject>("maxTotalFileSize", 4);
+                        using (var logOption = logOptionBuilder.Call<AndroidJavaObject>("build")) 
+                        {
+                            client.Call("setLibWebrtcLogOption", logOption);
+                        }
+                    }
+
                     unityPixelReader = new AndroidJavaObject("com.ricoh.livestreaming.unity.UnityPixelReader", unityPlugin);
 
                     RoomSpec.Type roomType;
@@ -495,7 +549,7 @@ public class LiveStreaming : MonoBehaviour
             app.unityUIContext.Post(__ =>
             {
                 var button = app.buttonConnect.GetComponent<Button>();
-                button.GetComponentInChildren<Text>().text = "Connecting...";
+                button.GetComponentInChildren<TMP_Text>().text = "Connecting...";
                 button.interactable = false;
                 app.inputFieldRoomID.interactable = false;
                 app.roomTypeDropDown.interactable = false;
@@ -511,7 +565,7 @@ public class LiveStreaming : MonoBehaviour
             {
                 app.isConnected = true;
                 app.displayedControllsTime = 0;
-                app.statsLogger = new RTCStatsLogger(Utils.CreateLogPath());
+                app.statsLogger = new RTCStatsLogger(Utils.CreateStatsLogPath());
 
                 app.statsTimer = new System.Timers.Timer(1000);
                 app.statsTimer.Elapsed += app.OnGetStatsTimedEvent;
@@ -522,7 +576,7 @@ public class LiveStreaming : MonoBehaviour
             app.unityUIContext.Post(__ =>
             {
                 var button = app.buttonConnect.GetComponent<Button>();
-                button.GetComponentInChildren<Text>().text = "Disconnect";
+                button.GetComponentInChildren<TMP_Text>().text = "Disconnect";
                 button.interactable = true;
             }
              , null);
@@ -535,7 +589,7 @@ public class LiveStreaming : MonoBehaviour
             app.unityUIContext.Post(__ =>
             {
                 var button = app.buttonConnect.GetComponent<Button>();
-                button.GetComponentInChildren<Text>().text = "Disconnecting...";
+                button.GetComponentInChildren<TMP_Text>().text = "Disconnecting...";
                 button.interactable = false;
             }
              , null);
@@ -558,7 +612,7 @@ public class LiveStreaming : MonoBehaviour
                 app.statsLogger?.Dispose();
                 app.statsLogger = null;
 
-                app.client?.Call("setEventListener", null);
+                app.client?.Call("setEventListener", (AndroidJavaObject) null);
                 app.client?.Dispose();
                 app.client = null;
 
@@ -574,14 +628,14 @@ public class LiveStreaming : MonoBehaviour
             app.unityUIContext.Post(__ =>
             {
                 var button = app.buttonConnect.GetComponent<Button>();
-                button.GetComponentInChildren<Text>().text = "Connect";
+                button.GetComponentInChildren<TMP_Text>().text = "Connect";
                 button.interactable = true;
                 app.inputFieldRoomID.interactable = true;
                 app.roomTypeDropDown.interactable = true;
 
                 app.equirectangularSphere.SetActive(false);
                 app.dualFisheyeSphere.SetActive(false);
-                app.normalVideoPlane.SetActive(false);
+                app.normalVideoPlane.gameObject.SetActive(false);
 
                 app.CleanUp();
             }
@@ -642,7 +696,7 @@ public class LiveStreaming : MonoBehaviour
                 {
                     app.equirectangularSphere.SetActive(false);
                     app.dualFisheyeSphere.SetActive(false);
-                    app.normalVideoPlane.SetActive(false);
+                    app.normalVideoPlane.gameObject.SetActive(false);
 
                     app.CleanUp();
                 }

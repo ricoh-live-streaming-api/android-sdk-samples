@@ -29,27 +29,16 @@ initial_audio_mute=unmute
 
 * Room帯域幅予約値は`com.ricoh.livestreaming.theta.RoomSpec#getSpec()`の "bitrate_reservation_mbps" の値を変更することにより変更可能
 * 設定値の決め方は以下を参照ください
-  * https://api.livestreaming.ricoh/document/%e6%83%b3%e5%ae%9a%e5%88%a9%e7%94%a8%e3%82%b7%e3%83%bc%e3%83%b3%e5%88%a5%e6%96%99%e9%87%91/
+  * https://api.livestreaming.ricoh/docs/price-by-scene/
 
 ### RICOH Live Streaming Conferenceと組み合わせでの動作
 * RICOH Live Streaming Conferenceと組み合わせで動作させるときの注意事項は以下を参照ください
-  * https://api.livestreaming.ricoh/document/ricoh-live-streaming-client-app-for-theta-sender%e3%81%a8ricoh-live-streaming-conference%e3%82%92%e7%b5%84%e3%81%bf%e5%90%88%e3%82%8f%e3%81%9b%e3%81%a6%e5%8b%95%e4%bd%9c%e7%a2%ba%e8%aa%8d%e3%81%97/
+  * https://api.livestreaming.ricoh/docs/training-theta/
 
 ## 操作と状態確認の方法
 
 * シャッターボタン長押し : 接続/切断
 * 配信中にシャッターボタン短押し : 静止画撮影
-* 接続中にモードボタン短押し : 解像度・スティッチングモード切り替え
-  * モードは以下の順で切り替わる
-
-| 解像度 | fps | スティッチングモード |
-| ------ | ------ | ------ |
-| 3840x1920 | 20fps | Equirectangular |
-| 3840x1920 | 30fps | Equirectangular |
-| 3840x1920 | 10fps | Equirectangular |
-| 1920x960 | 30fps | Equirectangular |
-
-* 接続中に無線ボタン短押し : 送信ビットレートの変更
 * THETA VではLive LEDで配信状態を示す
   * Live LED 消灯 : 未接続 or 切断完了
   * Live LED 点滅 : 接続準備中
@@ -111,7 +100,7 @@ libwebrtc ログは接続する度に "webrtc" プレフィックスのログフ
 
 ファイル形式は [LTSV](http://ltsv.org/) となっている。
 
-すべての情報を出力しているのではなく `candidate-pair`, `outbound-rtp`, `inbound-rtp`, `remote-inbound-rtp`, `track`, `sender`, `media-source`, `local-candidate`, `remote-candidate` の情報だけ出力している。
+すべての情報を出力しているのではなく `codec`, `inbound-rtp`, `outbound-rtp`, `remote-inbound-rtp`, `media-source`, `peer-connection`, `candidate-pair`, `local-candidate`, `remote-candidate` の情報だけ出力している。
 
 その他の情報を出力したい場合は `RTCStatsLogger.kt` を修正する。
 出力可能な情報の一覧は https://www.w3.org/TR/webrtc-stats/ で確認できるが、

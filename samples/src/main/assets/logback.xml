@@ -8,7 +8,7 @@
         </encoder>
     </appender>
 
-    <property name="app_log_path" value="${EXT_DIR:-/sdcard}/Android/data/${PACKAGE_NAME}/files/logs/sample" />
+    <define name="app_log_path" class="com.ricoh.livestreaming.sample.base.ExternalLogFileDefiner"/>
     <timestamp key="timestamp" datePattern="yyyyMMdd'T'HHmm"/>
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
         <file>${app_log_path}/android-sample_${timestamp}.log</file>
